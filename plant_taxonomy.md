@@ -1,5 +1,9 @@
 # 植物分类
 
+## 基本情况说明：
+
+选取相关的植物，尽量覆盖整个植物系统发育的情况：
+
 - Selaginella为卷柏属，Lycopodium为石松属，之前都归在Pteridophyta（蕨类植物门）之下。后来将蕨类植物中的卷柏分出，作为石松类植物。目前石松类植物只有两个基因组，均为卷柏属下的植物，其中一个并不含有注释文件。目前Lycopodiopsida（石松纲）下有3个部分：Isoetales/quillworts（水韭目），Lycopodiales（石松目），Selaginellales/spike mosses（卷柏目）。
 - 蕨类（Polypodiidae/Fern）：目前主要包括3个已测序的目
   - 桫椤目（Cyatheales）
@@ -11,54 +15,7 @@
   - 银杏（Ginkgo）
   - 松柏类（Conifers）
   - 买麻藤（Gnetophyte）
-
-```bash
-cd ~/data/symbio/info
-
-SPECIES=$(
-    nwr member -r species Azolla |
-        grep -v -i "Candidatus " |
-        grep -v -i "candidate " |
-        grep -v " sp." |
-        grep -v " cf." |
-        sed '1d' |
-        cut -f 1 |
-        sort |
-        uniq
-)
-
-for S in $SPECIES; do
-    RS=$(
-        echo "
-            SELECT
-                COUNT(*)
-            FROM ar
-            WHERE 1=1
-                AND species_id = $S
-            " |
-            sqlite3 -tabs ~/.nwr/ar_refseq.sqlite
-    )
-
-    CHR=$(
-        echo "
-            SELECT
-                COUNT(*)
-            FROM ar
-            WHERE 1=1
-                AND species_id = $S
-                AND assembly_level IN ('Complete Genome', 'Chromosome')
-            " |
-            sqlite3 -tabs ~/.nwr/ar_refseq.sqlite
-    )
-
-    if [[ ${RS} -gt 0 ]]; then
-        echo -e "$S\t$RS\t$CHR"
-    fi
-done |
-    nwr append stdin |
-    tsv-select -f 1,4,2-3 |
-    wc -l
-```
+- 黄藤（Daemonorops jenkinsiana）在NCBI中更改为Calamus jenkinsiana，两个名字均一样，目前采信NCBI taxonomy。
 
 ## 一些中文名称
 
@@ -84,4 +41,79 @@ done |
     - Welwitschia mirabilis - 百岁兰
     - Gnetum montanum - 买麻藤
 - Angiosperm - 被子植物
-  - 
+  - 被子植物基部
+    - Amborella trichopoda - 无油樟
+    - Nymphaea colorata - 蓝星睡莲
+    - Nymphaea thermarum - 侏儒卢旺达睡莲/小睡莲
+  - 木兰类
+    - Chimonanthus salicifolius - 柳叶蜡梅
+    - Cinnamomum micranthum (old: Cinnamomum kanehirae) - 沉水樟
+    - Persea americana - 鳄梨
+    - Liriodendron chinense - 鹅掌楸
+  - 单子叶
+    - Alismatales - 泽泻目
+      - Araceae - 天南星科
+        - Lemna minor - 浮萍
+        - Spirodela polyrhiza - 紫萍
+      - Zosteraceae - 大叶藻科
+        - Zostera marina - 大叶藻
+        - Zostera muelleri - 南半球海草（暂定）
+    - Asparagales - 天门冬目
+      - Amaryllidaceae - 石蒜科
+        - Allium sativum - 蒜
+      - Asparagaceae - 天门冬科
+        - Asparagus officinalis - 石刁柏（俗名：芦笋）
+        - Asparagus setaceus - 文竹
+      - Orchidaceae - 兰科
+        - Apostasia shenzhenica - 深圳拟兰
+        - Gastrodia elata - 天麻
+        - Dendrobium catenatum - 黄石斛
+        - Phalaenopsis aphrodite - 蝴蝶兰
+        - Phalaenopsis equestris - 小兰屿蝴蝶兰
+        - Vanilla planifolia - 香荚兰
+    - Arecales - 棕榈目
+      - Arecaceae - 棕榈科
+        - Cocos nucifera - 椰子
+        - Elaeis guineensis - 油棕
+        - Calamus simplicifolius - 单叶省藤
+        - Calamus jenkinsiana (old: Daemonorops jenkinsiana) - 黄藤
+        - Phoenix dactylifera - 海枣
+    - Poales - 禾本目
+      - Bromeliaceae - 凤梨科
+        - Ananas comosus var. bracteatus (old: Ananas bracteatus) - 红凤梨
+        - Ananas comosus - 凤梨
+      - Cyperaceae - 莎草科
+        - Carex littledalei (old: Kobresia littledalei) - 康藏嵩草
+      - Poaceae - 禾本科
+        - Phyllostachys edulis - 毛竹
+        - Bonia amplexicaulis - 芸香竹
+        - Guadua angustifolia - 瓜多竹
+        - Olyra latifolia - 莪莉竹
+        - Leersia perrieri 马达加斯加稻属，目前稻的外类群
+        - Oryza barthii - 巴蒂稻
+        - Oryza brachyantha - 短花稻
+        - Oryza longistaminata - 长药稻
+        - Oryza rufipogon - 野生稻
+        - Puccinellia tenuiflora - 星星草
+        - Lolium perenne - 黑麦草
+        - Brachypodium distachyon - 二穗短柄草
+        - Hordeum vulgare - 大麦
+        - Aegilops tauschii - 节节麦
+        - Triticum aestivum - 小麦
+        - Triticum turgidum - 圆锥小麦
+        - Eleusine coracana - 穇
+        - Oropetium thomaeum 一种耐旱草类，尚无英文名，PacBio三代
+        - Eragrostis curvula - 弯叶画眉草
+        - Eragrostis tef - 苔麸
+        - Zoysia japonica - 结缕草
+        - Miscanthus sinensis - 芒
+        - Saccharum spontaneum - 甜根子草
+        - Sorghum bicolor - 高粱
+        - Zea mays - 玉蜀黍（玉米）
+        - Setaria italica - 粱
+        - Setaria viridis - 狗尾草
+        - Panicum virgatum - 柳枝稷
+    - Zingiberales - 姜目
+      - Musaceae - 芭蕉科
+        - Ensete ventricosum - 粗柄象腿蕉
+        - Musa schizocarpa 未知
