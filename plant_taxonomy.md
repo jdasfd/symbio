@@ -45,6 +45,9 @@
     - Amborella trichopoda - 无油樟
     - Nymphaea colorata - 蓝星睡莲
     - Nymphaea thermarum - 侏儒卢旺达睡莲/小睡莲
+  - 两个单独分支
+    - Ceratophyllum demersum - 金鱼藻
+    - Chloranthus sessilifolius - 金粟兰
   - 木兰类
     - Chimonanthus salicifolius - 柳叶蜡梅
     - Cinnamomum micranthum (old: Cinnamomum kanehirae) - 沉水樟
@@ -117,3 +120,157 @@
       - Musaceae - 芭蕉科
         - Ensete ventricosum - 粗柄象腿蕉
         - Musa schizocarpa 未知
+  - 真双子叶基部
+    - Ranunculales - 毛茛目
+      - Circaeasteraceae - 星叶草科
+        - Kingdonia uniflora - 独叶草
+      - Papaveraceae - 罂粟科
+        - Eschscholzia californica - 花菱草
+        - Macleaya cordata - 博落回
+        - Papaver somniferum - 罂粟
+      - Ranunculaceae - 毛茛科
+        - Aquilegia coerulea 耧斗菜的一种
+    - Proteales - 山龙眼目
+      - Nelumbonaceae - 莲科
+        - Nelumbo nucifera - 莲
+      - Proteaceae - 山龙眼科
+        - Macadamia integrifolia - 澳洲坚果/夏威夷果
+    - Trochodendrales - 昆栏树目
+      - Trochodendraceae - 昆栏树科
+        - Tetracentron sinense - 水青树
+  - 核心真双子叶
+    - Saxifragales - 虎耳草目
+      - Crassulaceae - 景天科
+        - Kalanchoe fedtschenkoi - 玉吊钟
+    - Vitales - 葡萄目
+      - Vitaceae - 葡萄科
+        - Vitis vinifera - 葡萄
+    - 蔷薇分支豆类
+      - Celastrales - 卫矛目
+        - Celastraceae - 卫矛科
+          - Tripterygium wilfordii - 雷公藤
+      - Oxalidales - 酢浆草目
+        - Cephalotaceae - 土瓶草科
+          - Cephalotus follicularis - 土瓶草
+        - Oxalidaceae - 酢浆草科
+          - Averrhoa carambola - 阳桃（杨桃）
+      - Malpighiales - 金虎尾目
+        - Euphorbiaceae - 大戟科
+          - Ricinus communis - 蓖麻
+          - Jatropha curcas - 麻风树
+          - Manihot esculenta - 木薯
+          - Hevea brasiliensis - 橡胶树
+        - Linaceae - 亚麻科
+          - Linum usitatissimum - 亚麻
+        - Passifloraceae - 西番莲科
+          - Passiflora edulis - 鸡蛋果（百香果）
+        - Rhizophoraceae - 红树科
+          - Kandelia obovata - 秋茄树
+        - Salicaceae - 杨柳科
+          - Populus alba - 银白杨
+          - Populus pruinosa - 灰胡杨
+          - Populus trichocarpa - 毛果杨
+          - Salix brachista - 小垫柳
+      - Fabales - 豆目
+        - Fabaceae - 豆科
+          - Chamaecrista fasciculata
+          - Faidherbia albida - 环荚合欢
+          - Mimosa pudica - 含羞草
+          - Cercis canadensis - 加拿大紫荆
+          - Arachis duranensis - 蔓花生
+          - Arachis hypogaea - 落花生
+          - Cajanus cajan - 木豆
+          - Cicer arietinum - 鹰嘴豆
+          - Glycine soja - 野大豆
+          - Lablab purpureus - 扁豆
+          - Lotus japonicus (Lotus corniculatus subsp. japonicus) - 光叶百脉根
+          - Lupinus albus - 白羽扇豆
+          - Lupinus angustifolius - 狭叶羽扇豆
+          - Phaseolus lunatus - 棉豆
+          - Phaseolus vulgaris - 菜豆
+          - Pisum sativum - 豌豆
+          - Spatholobus suberectus - 密花豆
+          - Trifolium pratense - 红车轴草
+          - Trifolium subterraneum - 地车轴草
+          - Vigna angularis - 赤豆
+          - Vigna radiata - 绿豆
+          - Vigna unguiculata - 豇豆
+      - Rosales - 蔷薇目
+        - Cannabaceae - 大麻科
+          - Cannabis sativa - 大麻
+        - Moraceae - 桑科
+          - Artocarpus altilis - 面包树
+          - Artocarpus heterophyllus - 波罗蜜
+        - Rosaceae - 蔷薇科
+          - Prunus avium - 欧洲甜樱桃
+          - Prunus mume - 梅
+          - Prunus persica - 桃
+          - Pyrus betulifolia - 杜梨
+          - Pyrus communis - 西洋梨
+          - Eriobotrya japonica - 枇杷
+          - Dryas drummondii - 亮黄仙女木
+          - Fragaria nilgerrensis - 黄毛草莓
+          - Fragaria vesca - 野草莓
+          - Rosa chinensis - 月季花
+      - Cucurbitales - 葫芦目
+        - Begoniaceae - 秋海棠科
+          - Begonia fuchsioides - 倒挂金钟秋海棠
+        - Cucurbitaceae - 葫芦科
+          - Cucumis melo - 甜瓜
+          - Cucumis sativus - 黄瓜
+          - Lagenaria siceraria - 葫芦
+          - Cucurbita argyrosperma - 墨西哥南瓜
+          - Cucurbita maxima - 笋瓜
+          - Cucurbita moschata - 南瓜
+          - Cucurbita pepo - 西葫芦
+        - Datiscaceae - 野麻科
+          - Datisca glomerata - 头序野麻
+      - Fagales - 壳斗目
+        - Betulaceae - 桦木科
+          - Alnus glutinosa - 欧洲桤木
+        - Casuarinaceae - 木麻黄科
+          - Casuarina glauca - 粗枝木麻黄
+          - Castanea mollissima - 栗
+        - Fagaceae - 壳斗科
+          - Quercus suber - 欧洲栓皮栎
+        - Juglandaceae - 胡桃科
+          - Juglans nigra - 黑胡桃
+          - Juglans regia - 胡桃
+    - 蔷薇分支锦葵类
+      - Myrtales - 桃金娘目
+        - Lythraceae - 千屈菜科
+          - Punica granatum - 石榴
+        - Myrtaceae - 桃金娘科 
+          - Eucalyptus grandis - 大桉
+      - Sapindales - 无患子目
+        - Anacardiaceae - 漆树科
+          - Mangifera indica - 杧果
+          - Pistacia vera - 阿月浑子（开心果）
+          - Sclerocarya birrea - 象李
+        - Rutaceae - 芸香科
+          - Citrus clementina - 克莱门氏小柑橘
+          - Citrus maxima (old: Citrus grandis) - 柚
+          - Citrus cavaleriei (old: Citrus ichangensis) - 宜昌橙
+          - Citrus medica - 香橼
+          - Citrus sinensis - 甜橙
+        - Sapindaceae - 无患子科
+          - Dimocarpus longan - 龙眼
+          - Xanthoceras sorbifolium - 文冠果
+      - Malvales - 锦葵目
+        - Malvaceae - 锦葵科
+          - Bombax ceiba - 木棉
+          - Theobroma cacao - 可可
+          - Corchorus capsularis - 黄麻
+          - Corchorus olitorius - 长蒴黄麻
+          - Gossypium darwinii - 达尔文棉
+          - Gossypium herbaceum - 草棉
+          - Gossypium hirsutum - 陆地棉
+          - Gossypium mustelinum - 黄褐棉
+          - Gossypium raimondii - 美洲棉
+          - Hibiscus syriacus - 木槿
+        - Thymelaeaceae - 瑞香科
+          - Aquilaria sinensis - 土沉香
+      - Brassicales - 十字花目
+        - Brassicaceae - 十字花科
+          - Aethionema arabicum - 小亚细亚岩芥
+          - Arabis alpina
