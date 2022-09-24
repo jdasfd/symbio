@@ -19,6 +19,17 @@
 
 ## 一些中文名称
 
+- 藻类：
+  - Chlamydomonas reinhardtii - 莱茵绿藻
+  - Volvox carteri - 某种团藻
+  - Chromochloris zofingiensis - 佐夫色绿藻
+  - Botryococcus braunii - 布朗氏葡萄藻
+- Basal land plants 包括 liverworts/mosses/hornworts：
+  - Sphagnum magellanicum - 中位泥炭藓
+  - Sphagum recurvum (old: Sphagnum fallax) - 喙叶泥炭藓
+  - Physcomitrium patens - 立碗藓类
+  - Marchantia polymorpha - 地钱
+  - Ceratodon purpureus - 角齿藓
 - Fern - 蕨类：
   - Alsophila spinulosa - 桫椤
   - Ceratopteris richardii - 美洲水蕨
