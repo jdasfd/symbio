@@ -273,4 +273,77 @@
       - Brassicales - 十字花目
         - Brassicaceae - 十字花科
           - Aethionema arabicum - 小亚细亚岩芥
-          - Arabis alpina
+          - Brassica rapa - 蔓菁
+        - Moringaceae - 辣木科
+          - Moringa oleifera - 辣木
+        - Caricaceae - 番木瓜科
+          - Carica papaya - 番木瓜
+    - Caryophyllales - 石竹目
+      - Amaranthaceae - 苋科
+        - Amaranthus hypochondriacus - 千穗谷
+      - Chenopodiaceae - 藜科
+        - Beta vulgaris - 甜菜
+      - Polygonaceae - 蓼科
+        - Fagopyrum esculentum - 荞麦
+    - 菊类分支
+      - Cornales - 山茱萸目
+        - Nyssaceae - 蓝果树科
+          - Davidia involucrata - 珙桐
+      - Ericales - 杜鹃花目
+        - Actinidiaceae - 猕猴桃科
+          - Actinidia chinensis - 中华猕猴桃
+          - Actinidia eriantha - 毛花猕猴桃
+        - Ebenaceae - 柿树科
+          - Diospyros lotus - 君迁子
+        - Ericaceae - 杜鹃花科
+          - Rhododendron delavayi - 马缨杜鹃
+      - 菊分支唇形类
+        - Garryales - 丝樱花目
+          - Eucommiaceae - 杜仲科
+            - Eucommia ulmoides - 杜仲
+        - Solanales - 茄目
+          - Convolvulaceae - 旋花科（包含菟丝子科）
+            - Cuscuta australis - 南方菟丝子
+            - Cuscuta campestris - 原野菟丝子
+          - Solanaceae - 茄科
+            - Nicotiana attenuata - 渐狭叶烟草
+            - Capsicum annuum - 辣椒
+            - Solanum chilense - 智利番茄
+            - Solanum lycopersicum - 番茄（小番茄）
+            - Solanum pennellii - 彭氏番茄
+            - Solanum tuberosum - 马铃薯
+        - Gentianales - 龙胆目
+          - Apocynaceae - 夹竹桃科
+            - Calotropis gigantea - 牛角瓜
+          - Rubiaceae - 茜草科
+            - Coffea canephora - 中粒咖啡
+        - Lamiales - 唇形目
+          - Bignoniaceae - 紫葳科
+            - Handroanthus impetiginosus - 粉红钟花
+          - Gesneriaceae - 苦苣苔科
+            - Boea hygrometrica - 旋蒴苣苔
+          - Lamiaceae - 唇形科
+            - Salvia bowleyana - 南丹参
+          - Lentibulariaceae - 狸藻科
+            - Utricularia gibba - 少花狸藻（丝叶狸藻）
+          - Oleaceae - 木犀科
+            - Olea europaea - 木樨榄（油橄榄）
+          - Phrymaceae - 透骨草科
+            - Mimulus guttatus - 多斑沟酸浆
+      - 菊分支桔梗类
+        - Asterales - 菊目
+          - Astereae - 菊科
+            - Chrysanthemum indicum - 野菊
+            - Erigeron breviscapus - 短莛飞蓬
+            - Mikania micrantha - 微甘菊
+            - Helianthus annuus - 向日葵
+            - Cynara cardunculus - 刺苞菜蓟
+            - Lactuca sativa - 莴苣
+        - Apiales - 伞形目
+          - Apiaceae - 伞形科
+            - Apium graveolens - 旱芹（芹菜）
+            - Coriandrum sativum - 芫荽（香菜）
+        - Dipsacales - 川续断目
+          - Caprifoliaceae - 忍冬科
+            - Lonicera japonica - 忍冬
+
