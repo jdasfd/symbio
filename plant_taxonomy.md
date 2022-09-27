@@ -24,12 +24,16 @@
   - Volvox carteri - 某种团藻
   - Chromochloris zofingiensis - 佐夫色绿藻
   - Botryococcus braunii - 布朗氏葡萄藻
+  - Chara braunii - 布氏轮藻
+  - Mesotaenium endlicherianum - 双星藻
 - Basal land plants 包括 liverworts/mosses/hornworts：
   - Sphagnum magellanicum - 中位泥炭藓
   - Sphagum recurvum (old: Sphagnum fallax) - 喙叶泥炭藓
   - Physcomitrium patens - 立碗藓类
   - Marchantia polymorpha - 地钱
   - Ceratodon purpureus - 角齿藓
+- Lycopodiopsida - 石松类：
+  - Selaginella moellendorffii - 江南卷柏
 - Fern - 蕨类：
   - Alsophila spinulosa - 桫椤
   - Ceratopteris richardii - 美洲水蕨
@@ -316,6 +320,7 @@
           - Convolvulaceae - 旋花科（包含菟丝子科）
             - Cuscuta australis - 南方菟丝子
             - Cuscuta campestris - 原野菟丝子
+            - Ipomoea triloba - 三裂叶薯（红花野牵牛）
           - Solanaceae - 茄科
             - Nicotiana attenuata - 渐狭叶烟草
             - Capsicum annuum - 辣椒
@@ -345,6 +350,7 @@
         - Asterales - 菊目
           - Astereae - 菊科
             - Chrysanthemum indicum - 野菊
+            - Chrysanthemum lavandulifolium (old: Chrysanthemum seticuspe) - 甘菊
             - Erigeron breviscapus - 短莛飞蓬
             - Mikania micrantha - 微甘菊
             - Helianthus annuus - 向日葵
