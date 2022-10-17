@@ -42,6 +42,7 @@
   - Salvinia cucullata - 勺叶槐叶萍
 - Gymnosperm - 裸子植物
   - Cycas panzhihuaensis - 攀枝花苏铁 
+  - Ginkgo biloba - 银杏
   - Conifers II：
     - Taxus wallichiana - 红豆杉
     - Taxus wallichiana var. chinensis (old: Taxus chinensis) - 红豆杉
@@ -363,4 +364,24 @@
         - Dipsacales - 川续断目
           - Caprifoliaceae - 忍冬科
             - Lonicera japonica - 忍冬
+
+## Preparation
+
+Visit [Anaconda](https://www.anaconda.com/) to download install script.
+
+Visit [BUSCO userguide](https://busco.ezlab.org/busco_userguide.html#conda-package) for database.
+
+```bash
+# install anaconda
+bash Anaconda3-2022.05-Linux-x86_64.sh
+# enter to allow and complete installation
+# start linux again, directly activating base
+
+# avoid directly activating base when start linux
+conda config --set auto_activate_base false
+# conda install busco
+conda create -n genome -c conda-forge -c bioconda busco=5.4.2
+# activate env
+conda activate genome
+```
 
