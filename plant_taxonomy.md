@@ -385,3 +385,193 @@ conda create -n genome -c conda-forge -c bioconda busco=5.4.2
 conda activate genome
 ```
 
+## Process genome
+
+### Genomes selection and CDS renaming
+
+- Extract CDS and rename with species names
+
+```bash
+mkdir ~/data/symbio/info
+cd ~/data/symbio/info
+
+# manually pick some genomes into taxo_genom.xlsx
+
+perl ~/Scripts/fig_table/xlsx2csv.pl -f taxo_genom.xlsx |
+    tsv-select -d, -f 1 |
+    sed 1d |
+    perl -nl -e '$_ = lc $_;print $_' \
+    > genome.lst
+
+wc -l genome.lst
+#149 genome.lst
+
+#cat genome.lst |
+#    perl -nl -e 'print qq($_\t);' \
+#    > genome_trans.tsv
+
+mkdir ~/data/symbio/GENOMES_raw
+cd ~/data/symbio/GENOMES_raw
+# manually download genomes into this directory
+
+for genome in $(cat ../info/genome.lst)
+do
+    if ! [[ -d ./${genome} ]]; then
+        echo ${genome}
+    fi
+done
+# check whether there were some missing genomes
+# manually check and download them
+
+cat ../info/genome.unexist.lst | sort
+# manually rename them to the uniform format
+rm ../info/genome.unexist.lst
+
+# prepare all the cds files and rename them
+bash ../scripts/cds_prep.sh
+# this process will take a while
+# genomes without problem will be re-named and moved into GENOMES_done dir
+# genomes with problem will be moved to the manually dir
+# check them manually one by one
+
+# part of the situation (maybe combined into one script later)
+# this is the pattern
+# first situation: Using OriID
+cat genome.longest.gff |
+    tsv-filter --str-eq 3:mRNA |
+    tsv-select -f 9 |
+    perl -nle 'print "$2\tspecies_name_$1" if /Name=(.+?);Source_ID=(.+);$/;' \
+    > name.lst
+
+cat genome.cds |
+    perl -nle '
+    print if /^[ATCGN]/i;
+    print ">$1" if /^>.+OriID=(.+?)\s/;
+    ' \
+    > species_name.cds
+
+faops replace -s species_name.cds name.lst species_name.cds.fa
+
+mkdir ../../GENOMES/species_name
+mv species_name.cds.fa name.lst ../../GENOMES/species_name
+rm species_name.cds
+cd ..
+mv species_name ../GENOMES_done/
+
+# second situation:
+# lcl beginning, using pacid or protein_id
+cat genome.longest.gff |
+    tsv-filter --str-eq 3:CDS |
+    tsv-select -f 1,9 |
+    perl -nla -e '
+        $F[1] =~ /ID=(.+?)\.CDS.+Source_ID=cds-(.+);$/;
+        print "$F[0]_cds_$2\tspecies_name_$1";
+    ' |
+    tsv-uniq \
+    > name.lst
+
+cat genome.cds |
+    perl -nle '
+        print uc $_ if /^[AGCTN]/i;
+        print ">$1" if /^>lcl\|(.+)_\d+\s+\[/;
+    ' \
+    > species_name.cds
+
+faops replace -s species_name.cds name.lst species_name.cds.fa
+
+mkdir ../../GENOMES/species_name
+mv species_name.cds.fa name.lst ../../GENOMES/species_name
+rm species_name.cds
+cd ..
+mv species_name ../GENOMES_done/
+
+# third situation: 
+# || to split gff
+cat genome.longest.gff |
+    tsv-filter --str-eq 3:mRNA |
+    tsv-select -f 9 |
+    perl -nle '
+        print "$2\tspecies_name_$1" if /Name=(.+?);Source_ID=(.+);$/;
+    ' \
+    > name.lst
+
+cat genome.cds |
+    perl -nle '
+    print uc $_ if /^[AGCTN]/i;
+    print ">$1" if /^>.+\|\|(NNU.+?)\|.+/;
+    ' \
+    > species_name.cds
+
+faops replace -s species_name.cds name.lst species_name.cds.fa
+
+mkdir ../../GENOMES/species_name
+mv species_name.cds.fa name.lst ../../GENOMES/species_name
+rm species_name.cds
+cd ..
+mv species_name ../GENOMES_done/
+
+# forth situation:
+# change name directly when no multi-transcripts
+cat genome.cds |
+    perl -nle '
+    print uc $_ if /^[AGCTN]/i;
+    print ">species_name_$1" if /^>(.+?)$/;
+    #print ">species_name_$1" if /^>(.+?)\s/;
+    ' \
+    > species_name.cds.fa
+```
+
+- Change the structure of directories
+
+```bash
+mkdir ~/data/symbio/CDS
+cd ~/data/symbio/GENOMES_done
+
+# double check
+# whether species_dir has the right re-named files
+for dir in $(ls)
+do
+    echo "==> $dir"
+    ls ${dir}/*.cds.fa
+    cat ${dir}/*.cds.fa | faops size stdin | head -n 1
+done
+# finally 5 dirs should be dealt manually: 
+# boea_hygrometrica
+# amborella_trichopoda
+# isoetes_taiwanensis
+# mimulus_guttatus
+# bonia_amplexicaulis
+# complete them manually
+
+for dir in $(ls)
+do
+    if [ ! -f ${dir}/${dir}.cds.fa ]; then
+        echo "${dir} has problem"
+    else
+        mv ${dir}/${dir}.cds.fa ../CDS
+    fi
+done
+
+cd ~/data/symbio
+rm -rf GENOMES
+mv GENOMES_done GENOMES
+```
+
+- Download directly from URL (no records in database)
+  - fagopyrum_esculentum
+  - allium_sativum
+  - elaeis_guineensis
+  - passiflora_edulis
+  - daemonorops_jenkinsiana
+  - sphagnum_magellanicum
+  - adiantum_capillus-veneris (no longest gff)
+  - ceratopteris_richardii, marchantia_paleacea
+  - carica_papaya
+  - phoenix_dactylifera
+  - taxus_chinensis
+  - sphagnum_fallax
+
+- Discard
+  - punica_granatum (gff has problem)
+  - picea_abies (ftp cannot be accessed)
+
