@@ -575,3 +575,24 @@ mv GENOMES_done GENOMES
   - punica_granatum (gff has problem)
   - picea_abies (ftp cannot be accessed)
 
+### OrthoFinder
+
+```bash
+#rsync -avP /home/j/data/symbio/CDS name@ip:jyq/data/
+
+# connect to server
+cd ~/jyq/data
+
+# orthofinder in conda base env
+conda activate
+
+# change limit (h > s)
+ulimit -n 22301
+ulimit -Sn
+#22301
+
+orthofinder -f ./CDS -d -M msa
+# -M
+# -d
+```
+
