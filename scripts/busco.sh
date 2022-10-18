@@ -53,7 +53,10 @@ do
             >> BUSCO/busco_results.tsv
 
             echo "==> BUSCO results summary complete"
-            rm -rf BUSCO/${file}/*
+
+            # remove all dirs and keep summary txt and json
+            find BUSCO -mindepth 2 -maxdepth 2 -type d -exec rm -rf "{}" \;
+            echo "==> ${file} empty complete"
     else
         echo "==> BUSCO results wrong, please check"
     fi
