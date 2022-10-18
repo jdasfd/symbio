@@ -515,3 +515,11 @@ orthofinder -f ./CDS -d -M msa
 # -d: Input is DNA sequences
 ```
 
+## RNA-seq of AM symbiosis
+
+```bash
+mkdir ~/data/symbio/sra
+cd ~/data/symbio/sra
+
+
+```
