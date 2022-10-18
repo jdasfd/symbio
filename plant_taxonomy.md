@@ -478,11 +478,15 @@ cat info/genome.lst |
 # nothing wrong
 ```
 
+### BUSCO
 
 ```bash
 mkdir ~/data/symbio/BUSCO
 cd ~/data/symbio
 
+# check busco of every genome
+bash scripts/busco.sh
+```
 
 
 ### OrthoFinder
