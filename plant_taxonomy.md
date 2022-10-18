@@ -439,28 +439,31 @@ do
     rm tmp
 done
 
+# there would have a question: faops size will automatically stop at the first space
+# so some cds files would be named incorrectly
 # check whether changed successfully
-cd ~/data/symbio/CDS
-
-for file in $(ls)
-do
-    echo "==>{file}"
-    faops size ${file} | cut -f 1 | head -n 1
-done
-
-# manually change those species with problems
-cat genome.cds |
-    perl -nle '
-        print uc $_ if /^[AGCTN]/i;
-        print ">species_$1" if /^>.+\|(.+?)\|\|-*\d\|\|CDS/;
-    '
+cd ~/data/symbio
 
 cat info/genome.lst |
     parallel -j 6 --keep-order '
         echo "==>{}"
         faops size CDS/{}.cds.fa | cut -f 1 | head -n 1
     '
+# manually check those cds done wrong
 
+# manually change those species with problems
+# following is an example for dealing with the `.||.||.` type cds
+cd ~/data/symbio/GENOMES/<species>
+
+# <species> means you should replace to the specific species
+cat genome.cds |
+    perl -nle '
+        print uc $_ if /^[AGCTN]/i;
+        print "><species>_$1" if /^>.+\|(.+?)\|\|-*\d\|\|CDS/;
+    ' \
+    > ../../CDS/<species>.cds.fa 
+
+# finally check the renamed cds numbers
 cat info/genome.lst |
     parallel -j 6 --keep-order '
         echo "==>{}"
@@ -475,59 +478,12 @@ cat info/genome.lst |
 # nothing wrong
 ```
 
-- Change the structure of directories
 
 ```bash
-mkdir ~/data/symbio/CDS
-cd ~/data/symbio/GENOMES_done
-
-# double check
-# whether species_dir has the right re-named files
-for dir in $(ls)
-do
-    echo "==> $dir"
-    ls ${dir}/*.cds.fa
-    cat ${dir}/*.cds.fa | faops size stdin | head -n 1
-done
-# finally 5 dirs should be dealt manually: 
-# boea_hygrometrica
-# amborella_trichopoda
-# isoetes_taiwanensis
-# mimulus_guttatus
-# bonia_amplexicaulis
-# complete them manually
-
-for dir in $(ls)
-do
-    if [ ! -f ${dir}/${dir}.cds.fa ]; then
-        echo "${dir} has problem"
-    else
-        mv ${dir}/${dir}.cds.fa ../CDS
-    fi
-done
-
+mkdir ~/data/symbio/BUSCO
 cd ~/data/symbio
-rm -rf GENOMES
-mv GENOMES_done GENOMES
-```
 
-- Download directly from URL (no records in database)
-  - fagopyrum_esculentum
-  - allium_sativum
-  - elaeis_guineensis
-  - passiflora_edulis
-  - daemonorops_jenkinsiana
-  - sphagnum_magellanicum
-  - adiantum_capillus-veneris (no longest gff)
-  - ceratopteris_richardii, marchantia_paleacea
-  - carica_papaya
-  - phoenix_dactylifera
-  - taxus_chinensis
-  - sphagnum_fallax
 
-- Discard
-  - punica_granatum (gff has problem)
-  - picea_abies (ftp cannot be accessed)
 
 ### OrthoFinder
 
