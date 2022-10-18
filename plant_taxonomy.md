@@ -488,13 +488,17 @@ cd ~/data/symbio
 bash scripts/busco.sh
 ```
 
+## OrthoFinder identifying gene orthogroups
 
 ### OrthoFinder
 
 ```bash
+# do following to transmit data to server
 #rsync -avP /home/j/data/symbio/CDS name@ip:jyq/data/
 
 # connect to server
+# ssh name@ip
+
 cd ~/jyq/data
 
 # orthofinder in conda base env
@@ -506,7 +510,8 @@ ulimit -Sn
 #22301
 
 orthofinder -f ./CDS -d -M msa
-# -M
-# -d
+# orthofinder [options] -f <dir>
+# -M <txt>: Method for gene tree inference. Options 'dendroblast' & 'msa' [Default = dendroblast]
+# -d: Input is DNA sequences
 ```
 
