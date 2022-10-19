@@ -33,12 +33,16 @@ do
         echo "==>${file} BUSCO processing"
         busco -m genome -i GENOMES/${file}/genome.fa -o ${file} \
         --out_path ./BUSCO \
-        -l viridiplantae_odb10 --quiet --cpu 10
+        --auto-lineage-euk --quiet --cpu 10
         echo "==> BUSCO complete"
     fi
 
-    if [ -f BUSCO/${file}/summary*.json ]; then
-        cat BUSCO/${file}/summary*.json |
+
+    if grep -i -q "${file}" BUSCO/busco_results.tsv; then
+        echo "==> BUSCO already done"
+    elif [ -f BUSCO/${file}/short_summary*.json ]; then
+        # extract info from json
+        cat BUSCO/${file}/short_summary*.json |
             jq -r -c '
             [.results.Complete,
             .results."Single copy",
@@ -56,6 +60,7 @@ do
 
             # remove all dirs and keep summary txt and json
             find BUSCO -mindepth 2 -maxdepth 2 -type d -exec rm -rf "{}" \;
+
             echo "==> ${file} empty complete"
     else
         echo "==> BUSCO results wrong, please check"
