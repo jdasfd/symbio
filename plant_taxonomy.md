@@ -63,7 +63,8 @@
     - Nymphaea thermarum - 侏儒卢旺达睡莲/小睡莲
   - 两个单独分支
     - Ceratophyllum demersum - 金鱼藻
-    - Chloranthus sessilifolius - 金粟兰
+    - Chloranthus sessilifolius - 四川金粟兰
+    - Chloranthus spicatus - 金粟兰
   - 木兰类
     - Chimonanthus salicifolius - 柳叶蜡梅
     - Cinnamomum micranthum (old: Cinnamomum kanehirae) - 沉水樟
@@ -369,6 +370,8 @@
 
 Visit [Anaconda](https://www.anaconda.com/) to download install script.
 
+- BUSCO
+
 Visit [BUSCO userguide](https://busco.ezlab.org/busco_userguide.html#conda-package) for database.
 
 ```bash
@@ -385,7 +388,19 @@ conda create -n genome -c conda-forge -c bioconda busco=5.4.2
 conda activate genome
 ```
 
-## Process genome
+- OrthoFinder
+
+```bash
+conda config --add channels defaults
+conda config --add channels bioconda
+conda config --add channels conda-forge
+
+# install orthofinder
+conda install orthofinder
+# primary_transcript.py to get the proteins from the primary transcripts
+```
+
+## CDS or protein selection
 
 ### Genomes selection and CDS renaming
 
@@ -403,12 +418,12 @@ There are something to declare:
   - adiantum_capillus-veneris (no longest gff)
   - ceratopteris_richardii, marchantia_paleacea
   - carica_papaya
-  - phoenix_dactylifera
   - taxus_chinensis
   - sphagnum_fallax
 - Discard
   - punica_granatum (gff has problem)
   - picea_abies (ftp cannot be accessed)
+  - phoenix_dactylifera
 
 ```bash
 mkdir ~/data/symbio/info
@@ -423,7 +438,7 @@ perl ~/Scripts/fig_table/xlsx2csv.pl -f taxo_genom.xlsx |
     > genome.lst
 
 wc -l genome.lst
-#149 genome.lst
+#148 genome.lst
 
 # process genomes
 cd ~/data/symbio/GENOMES
@@ -478,6 +493,111 @@ cat info/genome.lst |
 # nothing wrong
 ```
 
+### Protein processing
+
+CDS always failed in grouping orthogroups correctly, so I chose protein files.
+
+```bash
+mkdir ~/data/symbio/PROTEIN
+cd ~/data/symbio
+
+cat info/genome.lst |
+    parallel -j 6 --keep-order '
+        if [ ! -f GENOMES/{}/genome.pep ]; then
+            echo "==>{} without protein"
+        else
+            cp GENOMES/{}/genome.pep PROTEIN/{}.pep.fa
+        fi
+    '
+# remove all species without pro seq in the genome.lst
+
+conda activate genome
+
+for file in $(ls PROTEIN)
+do
+    echo "==> ${file}"
+    python /home/j/anaconda3/envs/genome/bin/primary_transcript.py PROTEIN/${file}
+    echo
+done
+
+cd PROTEIN
+ls primary_transcripts | wc -l
+#148
+
+mv primary_transcripts/ ..
+cd ..
+
+# make sure which file should change seq_id
+# check seq_id could not be change
+for file in $(ls primary_transcripts)
+do
+    id=$(cat primary_transcripts/${file} | grep '^>' | head -n 1)
+    result=$(echo $id | grep '\s')
+    if [[ $result != "" ]]; then
+        echo "==>${file} name should change"
+        echo $id
+        echo
+    fi
+done
+#persea_americana
+#lemna_minor
+#ceratophyllum_demersum
+#cat primary_transcripts/<species>.pep.fa |
+#    perl -nle '
+#        print ">$1" if /^>.+?\|\|.+?\|\|.+?\|\|.+?\|\|(.+?)\|/;
+#        print if /^[A-Z]/i;
+#    ' > tmp && mv tmp primary_transcripts/<species>.pep.fa
+
+for file in $(ls primary_transcripts)
+do
+    id=$(cat primary_transcripts/${file} | grep '^>' | head -n 1)
+    result=$(echo $id | grep '\s')
+    if [[ $result != "" ]]; then    
+        cat primary_transcripts/${file} | perl -nle '
+            print ">$1" if /^>(.+?)\s/;
+            print if /^[A-Z]/i;
+        ' \
+        > tmp && mv tmp primary_transcripts/${file}
+    fi
+done
+# run above code for sure again
+
+# add species name before the id
+for name in $(ls primary_transcripts | perl -p -e 's/\..+$//')
+do
+    faops size primary_transcripts/${name}.pep.fa |
+        cut -f 1 |
+        awk -v name=${name} '{print ($0"\t"name"_"$0)}' \
+        > name.tmp
+    faops replace primary_transcripts/${name}.pep.fa name.tmp tmp.fa \
+    && mv tmp.fa primary_transcripts/${name}.pep.fa
+done
+
+# some protein files using . for termination codon
+# change them to * for satisfying diamond
+for file in $(ls primary_transcripts)
+do
+    SEQ=$(faops some -l 0 primary_transcripts/${file} \
+            <(faops size primary_transcripts/${file}) \
+            stdout | grep -v '^>')
+    result=$(echo $SEQ | grep '\.')
+    if [[ $result != "" ]]; then
+        echo "==>${file} end is ."
+    fi
+done
+
+# manually change them
+for file in $(ls primary_transcripts)
+do
+    cat primary_transcripts/${file} |
+        perl -nle 'if(/^>/){print;}else{$_ =~ s/\./\*/g; print $_;}' > tmp \
+        && mv tmp primary_transcripts/${file}
+done
+# run above code for sure again
+
+rsync -avP primary_transcripts/ name@ip:jyq/data/symbio/
+```
+
 ### BUSCO
 
 ```bash
@@ -487,6 +607,10 @@ cd ~/data/symbio
 # check busco of every genome
 bash scripts/busco.sh
 ```
+
+BUSCO process wrong:
+
+adiantum_capillus-veneris, 
 
 ## OrthoFinder identifying gene orthogroups
 
@@ -499,7 +623,7 @@ bash scripts/busco.sh
 # connect to server
 # ssh name@ip
 
-cd ~/jyq/data
+cd ~/jyq/data/symbio
 
 # orthofinder in conda base env
 conda activate
@@ -509,7 +633,7 @@ ulimit -n 22301
 ulimit -Sn
 #22301
 
-orthofinder -f ./CDS -d -M msa
+orthofinder -f ./primary_transcripts -og
 # orthofinder [options] -f <dir>
 # -M <txt>: Method for gene tree inference. Options 'dendroblast' & 'msa' [Default = dendroblast]
 # -d: Input is DNA sequences
