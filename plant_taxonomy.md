@@ -22,10 +22,13 @@
 - 藻类：
   - Chlamydomonas reinhardtii - 莱茵绿藻
   - Volvox carteri - 某种团藻
-  - Chromochloris zofingiensis - 佐夫色绿藻
+  - Chromochloris zofingiensis - 佐夫色绿球藻
   - Botryococcus braunii - 布朗氏葡萄藻
   - Chara braunii - 布氏轮藻
   - Mesotaenium endlicherianum - 双星藻
+  - Chlorokybus atmophyticus - 某种绿叠球藻（多细胞）
+  - Penium margaritaceum - 玛格丽塔柱形鼓藻
+  - Mesostigma viride - 中眼藻（单细胞轮藻）
 - Basal land plants 包括 liverworts/mosses/hornworts：
   - Sphagnum magellanicum - 中位泥炭藓
   - Sphagum recurvum (old: Sphagnum fallax) - 喙叶泥炭藓
