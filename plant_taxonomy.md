@@ -617,7 +617,7 @@ adiantum_capillus-veneris,
 
 ## OrthoFinder identifying gene orthogroups
 
-### OrthoFinder
+### OrthoFinder processing
 
 ```bash
 # do following to transmit data to server
@@ -631,15 +631,26 @@ cd ~/jyq/data/symbio
 # orthofinder in conda base env
 conda activate
 
-# change limit (h > s)
-ulimit -n 22301
-ulimit -Sn
-#22301
-
 orthofinder -f ./primary_transcripts -og
 # orthofinder [options] -f <dir>
+# -og: Stop after inferring orthogroups
+
+# cp results to local
+#rsync -avP name@ip:jyq/data/symbio/primary_transcripts/OrthoFinder/Results_Oct20/Orthogroups ~/data/symbio/
+
+# If hard limit, h > r already, then you just need to increase the soft limit:
+ulimit -n 22004
+
+# check the limit
+ulimit -Sn
+
+# continue after orthogroups inferred
+orthofinder -fg Results_Oct20/ -M msa -X
+# -fg <dir>: Start OrthoFinder from pre-computed orthogroups in <dir>
 # -M <txt>: Method for gene tree inference. Options 'dendroblast' & 'msa' [Default = dendroblast]
-# -d: Input is DNA sequences
+# -X: Don't add species names to sequence IDs
+```
+
 ```
 
 ## RNA-seq of AM symbiosis
