@@ -13,7 +13,7 @@ if [ ! -d ./BUSCO ]; then
     echo "==> mkdir BUSCO complete"
     echo
 else
-    echo "==> BUSCO is ready"
+    echo "==> dir BUSCO is ready"
     echo
 fi
 
@@ -22,6 +22,7 @@ if [ ! -f ./BUSCO/busco_results.tsv ]; then
     echo -e "Species\tComplete\tSingle_copy\tMulti_copy\tMissing\tN_makers\tContigs\tN50" \
     > BUSCO/busco_results.tsv
     echo "==> initialize BUSCO results complete"
+    echo
 fi
 
 # busco run for genomes
@@ -32,8 +33,9 @@ do
         # BUSCO processing
         echo "==>${file} BUSCO processing"
         busco -m genome -i GENOMES/${file}/genome.fa -o ${file} \
-        --out_path ./BUSCO \
-        --auto-lineage-euk --quiet --cpu 10
+        --out_path ./BUSCO --offline \
+        -l ~/data/symbio/busco_downloads/lineages/eukaryota_odb10 \
+        --quiet --cpu 10 --augustus
         echo "==> BUSCO complete"
     fi
 
