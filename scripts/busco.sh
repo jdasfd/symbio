@@ -38,13 +38,13 @@ do
         echo "==> BUSCO complete"
 
     fi
-
+    
 
     if grep -i -q "${file}" BUSCO/busco_results.tsv; then
         echo "==> BUSCO already done"
         echo
         rm ./busco_*.log
-    
+
     elif [ -f BUSCO/${file}/short_summary*.json ]; then
         # extract info from json
         cat BUSCO/${file}/short_summary*.json |
@@ -61,18 +61,18 @@ do
             awk -v file=${file} '{print (file"\t"$0)}' \
             >> BUSCO/busco_results.tsv
 
-            echo "==> BUSCO results summary complete"
-            echo
+        echo "==> BUSCO results summary complete"
+        echo
+        
+        # remove all dirs and keep summary txt and json
+        find BUSCO -mindepth 2 -maxdepth 2 -type d -exec rm -rf "{}" \;
 
-            rm ./busco_*.log
+        echo "==> ${file} empty complete"
+        echo
 
-            # remove all dirs and keep summary txt and json
-            find BUSCO -mindepth 2 -maxdepth 2 -type d -exec rm -rf "{}" \;
-
-            echo "==> ${file} empty complete"
-            echo
     else
         echo "==> BUSCO results wrong, please check"
         echo
+        rm ./busco_*.log
     fi
 done
