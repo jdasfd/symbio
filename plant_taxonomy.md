@@ -601,7 +601,9 @@ done
 rsync -avP primary_transcripts/ name@ip:jyq/data/symbio/
 ```
 
-### BUSCO
+## BUSCO
+
+Running BUSCO for checking the genomes or assemblies sequencing quality.
 
 ```bash
 mkdir ~/data/symbio/BUSCO
@@ -610,10 +612,6 @@ cd ~/data/symbio
 # check busco of every genome
 bash scripts/busco.sh
 ```
-
-BUSCO process wrong:
-
-adiantum_capillus-veneris, 
 
 ## OrthoFinder identifying gene orthogroups
 
@@ -650,6 +648,68 @@ orthofinder -fg Results_Oct20/ -M msa -X
 # -M <txt>: Method for gene tree inference. Options 'dendroblast' & 'msa' [Default = dendroblast]
 # -X: Don't add species names to sequence IDs
 ```
+
+### OrthoFinder results
+
+```bash
+
+```
+
+Totally 135923 orthogroups were identified.
+
+### Renaming and extracting
+
+After OrthoFinder processing, those pep files contained `:` in their seq_ids will be converted to `_`. Protein extraction will fail if you do not change your seq_ids.
+
+The pep file of ceratophyllum_demersum has predicted sequences generated from six frame translation, remove them manually (code not shown).
+
+```bash
+cd ~/data/symbio
+
+rm info/rename_id.lst
+# check those files whose seq_ids should be changed
+for file in $(ls primary_transcripts)
+do
+    if grep -i -q ':' primary_transcripts/${file}; then
+        echo "${file}" >> info/rename_id.lst
+    fi
+done
+#anthoceros_angustus.pep.fa
+#bonia_amplexicaulis.pep.fa
+#calamus_simplicifolius.pep.fa
+#cocos_nucifera.pep.fa
+#daemonorops_jenkinsiana.pep.fa
+#mesotaenium_endlicherianum.pep.fa
+#olyra_latifolia.pep.fa
+#phalaenopsis_equestris.pep.fa
+#phyllostachys_edulis.pep.fa
+#rhododendron_delavayi.pep.fa
+#welwitschia_mirabilis.pep.fa
+
+for file in $(cat info/rename_id.lst)
+do
+    cat primary_transcripts/${file} |
+        perl -p -e 's/:/_/g' \
+        > tmp && mv tmp primary_transcripts/${file}
+done
+
+# run again to check whether renaming succeed
+for file in $(ls primary_transcripts)
+do
+    if grep -i -q ':' primary_transcripts/${file}; then
+        echo "${file}"
+    fi
+done
+# OK
+```
+
+### Orthogroups RLK identifying
+
+- Extract top 3 long transcripts from each orthogroups
+
+```bash
+cd ~/data/symbio/Orthogroups
+
 
 ```
 
