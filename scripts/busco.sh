@@ -33,12 +33,11 @@ do
         echo
         busco -m genome -i GENOMES/${file}/genome.fa -o ${file} \
         --out_path ./BUSCO --offline \
-        -l ~/data/symbio/busco_downloads/lineages/viridiplantae_odb10 \
+        -l busco_downloads/lineages/viridiplantae_odb10 \
         --quiet --cpu 4 --augustus
         echo "==> BUSCO complete"
-
     fi
-    
+
 
     if grep -i -q "${file}" BUSCO/busco_results.tsv; then
         echo "==> BUSCO already done"
@@ -63,7 +62,7 @@ do
 
         echo "==> BUSCO results summary complete"
         echo
-        
+
         # remove all dirs and keep summary txt and json
         find BUSCO -mindepth 2 -maxdepth 2 -type d -exec rm -rf "{}" \;
 
