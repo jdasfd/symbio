@@ -748,6 +748,37 @@ cd ~/data/symbio/Orthogroups
 
 ```
 
+- Identify domains from each protein seq via `hmmscan`
+
+```bash
+mkdir -p ~/data/symbio/HMM/PFAM
+cd ~/data/symbio/HMM/PFAM
+
+for basename in Pfam-A.hmm Pfam-A.hmm.dat active_site.dat; do
+    wget -N --content-disposition ftp://ftp.ebi.ac.uk/pub/databases/Pfam/releases/Pfam35.0/${basename}.gz
+    wget -N --content-disposition ftp://ftp.ebi.ac.uk/pub/databases/Pfam/releases/Pfam35.0/${basename}.gz
+    wget -N --content-disposition ftp://ftp.ebi.ac.uk/pub/databases/Pfam/releases/Pfam35.0/${basename}.gz
+done
+
+for basename in Pfam-A.hmm Pfam-A.hmm.dat active_site.dat; do
+    echo "==> ${basename}"
+    gzip -dcf ${basename}.gz > ${basename}
+done
+
+hmmpress Pfam-A.hmm
+
+cd ~/data/symbio
+mkdir -p ~/data/symbio/DOMAIN
+
+cat info/genome.lst |
+    parallel -j 4 --keep-order '
+        echo {}
+        hmmscan --cpu 4 -E 0.1 --domE 0.1 --noali --notextw \
+            --tblout DOMAIN/{}.txt \
+            ./HMM/PFAM/Pfam-A.hmm primary_transcripts/{}.pep.fa
+    '
+```
+
 ## RNA-seq of AM symbiosis
 
 ```bash
