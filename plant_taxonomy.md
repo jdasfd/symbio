@@ -37,6 +37,7 @@
   - Ceratodon purpureus - 角齿藓
 - Lycopodiopsida - 石松类：
   - Selaginella moellendorffii - 江南卷柏
+  - Isoetes taiwanensis - 台湾水韭
 - Fern - 蕨类：
   - Alsophila spinulosa - 桫椤
   - Ceratopteris richardii - 美洲水蕨
@@ -651,11 +652,45 @@ orthofinder -fg Results_Oct20/ -M msa -X
 
 ### OrthoFinder results
 
+Acquire results from the workstation using rsync and put in the dir `Orthogroups` (command not shown).
+
 ```bash
+cd ~/data/symbio/Orthogroups
+mkdir groups
 
+cat Orthogroups.tsv | cut -f 1 | sed 1d > ortho.lst
+
+wc -l ortho.lst
+#135923 ortho.lst
+# Totally 135923 orthogroups were identified
+
+# split each orthogroup into a tsv
+cat ortho.lst |
+    parallel -j 4 --keep-order '
+        echo "==> {}"
+        bash ../scripts/ortho_extract.sh {} ./groups/
+    '
+
+mkdir pro3
+# extract 3 longest proteins
+cat ortho.lst |
+    parallel -j 16 --keep-order '
+        echo "==> {}"
+        bash ../scripts/pro_extract.sh groups/{}.csv ../primary_transcripts/ {}
+        if [ -f {}.fa ]; then
+            cat {}.fa |
+                faops size stdin |
+                sort -nk 2,2 -r |
+                head -n 3 |
+                cut -f 1 \
+                > {}.lst
+            faops some {}.fa {}.lst ./pro3/{}.fa
+            rm {}.lst {}.fa
+        else
+            echo problem
+        fi
+    '
 ```
-
-Totally 135923 orthogroups were identified.
 
 ### Renaming and extracting
 
