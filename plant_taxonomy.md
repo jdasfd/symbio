@@ -21,14 +21,15 @@
 
 - 藻类：
   - Chlamydomonas reinhardtii - 莱茵绿藻
-  - Volvox carteri - 某种团藻
+  - Volvox carteri - 强壮团藻（多细胞绿藻，与莱茵绿藻closely related）
   - Chromochloris zofingiensis - 佐夫色绿球藻
   - Botryococcus braunii - 布朗氏葡萄藻
+  - Mesostigma viride - 中眼藻（鞭毛单细胞轮藻 - 链形植物门最早分化出的轮藻基因组）
+  - Chlorokybus atmophyticus - 绿叠球藻（多细胞 - 链形植物门最早分化出的轮藻基因组）
   - Chara braunii - 布氏轮藻
-  - Mesotaenium endlicherianum - 双星藻
-  - Chlorokybus atmophyticus - 某种绿叠球藻（多细胞）
-  - Penium margaritaceum - 玛格丽塔柱形鼓藻
-  - Mesostigma viride - 中眼藻（单细胞轮藻）
+  - Klebsormidium flaccidum - 软克里藻
+  - Penium margaritaceum - 玛格丽塔柱形鼓藻（双星藻纲）
+  - Mesotaenium endlicherianum - 中带鼓藻（双星藻纲）
 - Basal land plants 包括 liverworts/mosses/hornworts：
   - Sphagnum magellanicum - 中位泥炭藓
   - Sphagum recurvum (old: Sphagnum fallax) - 喙叶泥炭藓
