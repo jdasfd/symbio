@@ -405,6 +405,33 @@ conda install orthofinder
 # primary_transcript.py to get the proteins from the primary transcripts
 ```
 
+- HMMER
+
+```bash
+mkdir -p ~/data/symbio/HMM/PFAM
+cd ~/data/symbio/HMM/PFAM
+
+for basename in Pfam-A.hmm Pfam-A.hmm.dat active_site.dat; do
+    wget -N --content-disposition ftp://ftp.ebi.ac.uk/pub/databases/Pfam/releases/Pfam35.0/${basename}.gz
+    wget -N --content-disposition ftp://ftp.ebi.ac.uk/pub/databases/Pfam/releases/Pfam35.0/${basename}.gz
+    wget -N --content-disposition ftp://ftp.ebi.ac.uk/pub/databases/Pfam/releases/Pfam35.0/${basename}.gz
+done
+
+for basename in Pfam-A.hmm Pfam-A.hmm.dat active_site.dat; do
+    echo "==> ${basename}"
+    gzip -dcf ${basename}.gz > ${basename}
+done
+
+hmmpress Pfam-A.hmm
+```
+
+- TMHMM
+
+```bash
+pip3 install -U pybiolib
+biolib run DTU/DeepTMHMM --help
+```
+
 ## CDS or protein selection
 
 ### Genomes selection and CDS renaming
@@ -752,32 +779,55 @@ cd ~/data/symbio/Orthogroups
 - Identify domains from each protein seq via `hmmscan`
 
 ```bash
-mkdir -p ~/data/symbio/HMM/PFAM
-cd ~/data/symbio/HMM/PFAM
-
-for basename in Pfam-A.hmm Pfam-A.hmm.dat active_site.dat; do
-    wget -N --content-disposition ftp://ftp.ebi.ac.uk/pub/databases/Pfam/releases/Pfam35.0/${basename}.gz
-    wget -N --content-disposition ftp://ftp.ebi.ac.uk/pub/databases/Pfam/releases/Pfam35.0/${basename}.gz
-    wget -N --content-disposition ftp://ftp.ebi.ac.uk/pub/databases/Pfam/releases/Pfam35.0/${basename}.gz
-done
-
-for basename in Pfam-A.hmm Pfam-A.hmm.dat active_site.dat; do
-    echo "==> ${basename}"
-    gzip -dcf ${basename}.gz > ${basename}
-done
-
-hmmpress Pfam-A.hmm
-
 cd ~/data/symbio
 mkdir -p ~/data/symbio/DOMAIN
 
 cat info/genome.lst |
-    parallel -j 4 --keep-order '
+    parallel -j 5 --keep-order '
         echo {}
-        hmmscan --cpu 4 -E 0.1 --domE 0.1 --noali --notextw \
+        hmmscan --cpu 2 -E 0.1 --domE 0.1 -o DOMAIN/{}.txt \
+            ./HMM/PFAM/Pfam-A.hmm primary_transcripts/{}.pep.fa
+    '
+
+# or
+
+cat info/genome.lst |
+    parallel -j 5 --keep-order '
+        echo {}
+        hmmscan --cpu 2 -E 0.1 --domE 0.1 --noali --notextw \
             --tblout DOMAIN/{}.txt \
             ./HMM/PFAM/Pfam-A.hmm primary_transcripts/{}.pep.fa
     '
+
+cd ~/data/symbio/DOMAIN
+
+# extract all pkinase with cutoff E-value < 1e-4
+ls *.txt | parallel -j 3 --keep-order 'bash ../scripts/pkinase.sh {}'
+
+mkdir kinase
+
+# all pkinase protein ids were contained in a list
+for file in $(ls *.pkinase.tsv)
+do
+    cat ${file} | cut -f 1 | tsv-uniq >> kinase/all_pkinase.lst
+done
+
+cat kinase/all_pkinase.lst | wc -l
+#178233
+
+# all domains were extracted
+for file in $(ls *.pkinase.tsv)
+do
+    cat ${file} | cut -f 2 >> kinase/all_domains.tsv
+done
+
+cat kinase/all_domains.tsv |
+    tsv-summarize -g 1 --count |
+    sort -r -nk 2,2 \
+    > tmp && mv tmp kinase/all_domains.tsv
+
+cat kinase/all_domains.tsv | wc -l
+#10812
 ```
 
 ## RNA-seq of AM symbiosis
