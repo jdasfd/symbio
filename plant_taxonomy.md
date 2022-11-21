@@ -768,36 +768,27 @@ done
 
 ### Orthogroups RLK identifying
 
-- Extract top 3 long transcripts from each orthogroups
-
-```bash
-cd ~/data/symbio/Orthogroups
-
-
-```
-
 - Identify domains from each protein seq via `hmmscan`
 
 ```bash
 cd ~/data/symbio
-mkdir -p ~/data/symbio/DOMAIN
+mkdir -p ~/data/symbio/DOMAIN/pfam
 
 cat info/genome.lst |
-    parallel -j 5 --keep-order '
+    parallel -j 6 --keep-order '
         echo {}
-        hmmscan --cpu 2 -E 0.1 --domE 0.1 -o DOMAIN/{}.txt \
+        hmmscan --cpu 2 -E 0.1 --domE 0.1 -o DOMAIN/pfam/{}.txt \
             ./HMM/PFAM/Pfam-A.hmm primary_transcripts/{}.pep.fa
     '
 
-# or
-
-cat info/genome.lst |
-    parallel -j 5 --keep-order '
-        echo {}
-        hmmscan --cpu 2 -E 0.1 --domE 0.1 --noali --notextw \
-            --tblout DOMAIN/{}.txt \
-            ./HMM/PFAM/Pfam-A.hmm primary_transcripts/{}.pep.fa
+ls DOMAIN/pfam/*.txt |
+    parallel -j 6 --keep-order '
+        echo "==> {/.}"
+        perl scripts/hmm_results.pl -i {} \
+        > DOMAIN/pfam/{/.}.pfam.tsv
     '
+```
+
 
 cd ~/data/symbio/DOMAIN
 
