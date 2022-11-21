@@ -789,36 +789,95 @@ ls DOMAIN/pfam/*.txt |
     '
 ```
 
+- Extract kinase domain
 
+```bash
 cd ~/data/symbio/DOMAIN
 
-# extract all pkinase with cutoff E-value < 1e-4
-ls *.txt | parallel -j 3 --keep-order 'bash ../scripts/pkinase.sh {}'
+# uniq all domains
+ls pfam/*.pfam.tsv |
+    perl -p -e 's/\.pfam\.tsv$//' |
+    parallel -j 12 --keep-order '
+        echo "==> {/}"
+        cat {}.pfam.tsv |
+            tsv-summarize -H -g QUERY,Domain --min E_value \
+            > {}.uniq.tsv
+    '
 
-mkdir kinase
-
-# all pkinase protein ids were contained in a list
-for file in $(ls *.pkinase.tsv)
-do
-    cat ${file} | cut -f 1 | tsv-uniq >> kinase/all_pkinase.lst
-done
-
-cat kinase/all_pkinase.lst | wc -l
-#178233
-
+rm all_domains.tsv
 # all domains were extracted
-for file in $(ls *.pkinase.tsv)
+for file in $(ls pfam/*.uniq.tsv)
 do
-    cat ${file} | cut -f 2 >> kinase/all_domains.tsv
+    cat ${file} | sed 1d | cut -f 2 >> all_domains.tsv
 done
 
-cat kinase/all_domains.tsv |
+# basic info of domains identified
+cat all_domains.tsv |
     tsv-summarize -g 1 --count |
     sort -r -nk 2,2 \
-    > tmp && mv tmp kinase/all_domains.tsv
+    > tmp && mv tmp all_domains.tsv
 
-cat kinase/all_domains.tsv | wc -l
-#10812
+cat all_domains.tsv | wc -l
+#19622
+
+# extract all domains of pkinase with cutoff E-value <= 1e-4
+ls pfam/*.uniq.tsv |
+    perl -p -e 's/\.uniq\.tsv$//' |
+    parallel -j 12 --keep-order '
+        echo "==> {/}"
+        cat {}.uniq.tsv |
+            tsv-filter -H --iregex Domain:pkinase --le E_value_min:"1e-4" \
+            > KD/{/}.tsv
+    '
+
+rm all_KD_pro.lst
+# all proteins with the pkinase domain
+for file in $(ls KD/*.tsv)
+do
+    cat ${file} | cut -f 1 | sed 1d | tsv-uniq >> all_KD_pro.lst
+done
+
+cat all_KD_pro.lst | wc -l
+#187385
+
+# all pkinase protein ids were contained in a list
+#for file in $(ls *.pkinase.tsv)
+#do
+#    cat ${file} | cut -f 1 | tsv-uniq >> kinase/all_pkinase.lst
+#done
+
+#cat kinase/all_pkinase.lst | wc -l
+#178233
+
+# extract all protein sequences contained the kinase domain
+mkdir -p ~/data/symbio/DOMAIN/seq_KD
+
+ls KD/*.tsv |
+    parallel -j 12 --keep-order '
+        echo "==> {/.}"
+        faops some -l 0 \
+            ../primary_transcripts/{/.}.pep.fa \
+            <(cat {} | sed 1d | cut -f 1 | tsv-uniq) \
+            ./seq_KD/{/.}.fa
+    '
+
+for species in $(ls ../primary_transcripts | sed 's/\.pep\.fa$//')
+do
+    echo "==> ${species}"
+    faops some -l 0 \
+        ../primary_transcripts/${species}.pep.fa \
+        ./kinase/all_pkinase.lst \
+        ./kinase/seq/${species}.fa
+done
+
+# check extraction
+wc -l ./kinase/seq/*.fa | grep 'total' | perl -p -e 's/\s+(\d+).+$/$1\/2/' | bc
+#178233
+# OK
+
+
+
+```
 ```
 
 ## RNA-seq of AM symbiosis
