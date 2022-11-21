@@ -903,3 +903,11 @@ cd ~/data/symbio/sra
 
 
 ```
+
+```bash
+for file in $(ls)
+do
+    hmmscan --cpu 8 -E 1e-4 --domE 1e-4 -o ${file}.txt \
+    ../../symbio/HMM/PFAM/Pfam-A.hmm ${file}
+done
+```
