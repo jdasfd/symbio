@@ -878,6 +878,21 @@ wc -l ./kinase/seq/*.fa | grep 'total' | perl -p -e 's/\s+(\d+).+$/$1\/2/' | bc
 
 
 ```
+
+- `TMHMM2` for transmembrane domain identification
+
+```bash
+mkdir -p ~/data/symbio/DOMAIN/TMD
+cd ~/data/symbio/DOMAIN/TMD
+
+mkdir ~/data/symbio/DOMAIN/results
+dos2unix *.tsv
+
+for file in $(ls)
+do
+    echo "==> ${file}"
+    perl ../../scripts/tmhmm_result.pl -i ${file} > ../results/${file}
+done
 ```
 
 ## RNA-seq of AM symbiosis
