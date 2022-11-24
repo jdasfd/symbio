@@ -15,7 +15,7 @@
   - 银杏（Ginkgo）
   - 松柏类（Conifers）
   - 买麻藤（Gnetophyte）
-- 黄藤（Daemonorops jenkinsiana）在NCBI中更改为Calamus jenkinsiana，两个名字均一样，目前采信NCBI taxonomy。
+- 黄藤（Daemonorops jenkinsiana）在NCBI中更改为Calamus jenkinsiana，两个名字均一样。
 
 ## 一些中文名称
 
@@ -794,21 +794,14 @@ ls DOMAIN/pfam/*.txt |
 ```bash
 cd ~/data/symbio/DOMAIN
 
-# uniq all domains
-ls pfam/*.pfam.tsv |
-    perl -p -e 's/\.pfam\.tsv$//' |
-    parallel -j 12 --keep-order '
-        echo "==> {/}"
-        cat {}.pfam.tsv |
-            tsv-summarize -H -g QUERY,Domain --min E_value \
-            > {}.uniq.tsv
-    '
-
 rm all_domains.tsv
 # all domains were extracted
-for file in $(ls pfam/*.uniq.tsv)
+for file in $(ls pfam/*.pfam.tsv)
 do
-    cat ${file} | sed 1d | cut -f 2 >> all_domains.tsv
+    cat ${file} |
+        tsv-select -H -f Domain |
+        sed 1d \
+        >> all_domains.tsv
 done
 
 # basic info of domains identified
@@ -819,35 +812,43 @@ cat all_domains.tsv |
 
 cat all_domains.tsv | wc -l
 #19622
+# all domains identified, including those repeated domains from a location
+# this will be considered later
 
 # extract all domains of pkinase with cutoff E-value <= 1e-4
-ls pfam/*.uniq.tsv |
-    perl -p -e 's/\.uniq\.tsv$//' |
+# be aware of pk may contained domains not only pkinase
+ls pfam/*.pfam.tsv |
+    perl -p -e 's/\.pfam\.tsv$//' |
     parallel -j 12 --keep-order '
         echo "==> {/}"
-        cat {}.uniq.tsv |
-            tsv-filter -H --iregex Domain:pkinase --le E_value_min:"1e-4" \
+        cat {}.pfam.tsv |
+            tsv-filter -H --iregex Domain:pk --le E_value:"1e-4" |
+            sed 1d |
+            tsv-select -f 1,2,3,4,5 \
             > KD/{/}.tsv
     '
 
-rm all_KD_pro.lst
-# all proteins with the pkinase domain
 for file in $(ls KD/*.tsv)
 do
-    cat ${file} | cut -f 1 | sed 1d | tsv-uniq >> all_KD_pro.lst
+    cat ${file} |
+        tsv-select -f 2 \
+        >> all_KD.tsv
 done
 
+cat all_KD.tsv |
+    tsv-summarize -g 1 --count |
+    sort -r -nk 2,2 \
+    > tmp && mv tmp all_KD.tsv
+
+rm all_KD_pro.lst
+# all proteins with the pkinase domain
+ls KD/*.tsv |
+    parallel -j 12 --keep-order '
+        cat {} | cut -f 1 | tsv-uniq >> all_KD_pro.lst
+    '
+
 cat all_KD_pro.lst | wc -l
-#187385
-
-# all pkinase protein ids were contained in a list
-#for file in $(ls *.pkinase.tsv)
-#do
-#    cat ${file} | cut -f 1 | tsv-uniq >> kinase/all_pkinase.lst
-#done
-
-#cat kinase/all_pkinase.lst | wc -l
-#178233
+#204137
 
 # extract all protein sequences contained the kinase domain
 mkdir -p ~/data/symbio/DOMAIN/seq_KD
@@ -857,33 +858,25 @@ ls KD/*.tsv |
         echo "==> {/.}"
         faops some -l 0 \
             ../primary_transcripts/{/.}.pep.fa \
-            <(cat {} | sed 1d | cut -f 1 | tsv-uniq) \
+            <(cat {} | cut -f 1 | tsv-uniq) \
             ./seq_KD/{/.}.fa
     '
 
-for species in $(ls ../primary_transcripts | sed 's/\.pep\.fa$//')
-do
-    echo "==> ${species}"
-    faops some -l 0 \
-        ../primary_transcripts/${species}.pep.fa \
-        ./kinase/all_pkinase.lst \
-        ./kinase/seq/${species}.fa
-done
-
 # check extraction
-wc -l ./kinase/seq/*.fa | grep 'total' | perl -p -e 's/\s+(\d+).+$/$1\/2/' | bc
-#178233
-# OK
-
-
-
+wc -l ./seq_KD/*.fa | grep 'total' | perl -p -e 's/\s+(\d+).+$/$1\/2/' | bc
+#204137
+# extraction complete
 ```
 
 - `TMHMM2` for transmembrane domain identification
 
+Manually upload files to [TMHMM](https://services.healthtech.dtu.dk/service.php?TMHMM-2.0) and copy results into a tsv file.
+
+Although `selenium` could deal with this automatically, but there are always problems that I cannot solve. But still, a script will be saved in [scripts](https://github.com/jdasfd/symbio/tree/main/scripts). It will be completed later (maybe). XD
+
 ```bash
 mkdir -p ~/data/symbio/DOMAIN/TMD
-cd ~/data/symbio/DOMAIN/TMD
+# manually copy all results into a tsv
 
 mkdir ~/data/symbio/DOMAIN/results
 dos2unix *.tsv
