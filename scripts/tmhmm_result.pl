@@ -28,20 +28,27 @@ open my $tsv_in, '<', $input;
 while (<$tsv_in>){
     chomp;
     my @array = split/\t/,$_;
-    $array[4] =~ /^PredHel=(\d+)$/;
-    my $hel_num = $1;
-    $array[5] =~ /^Topology=(.+)$/;
-    my $range = $1;
-    while ($hel_num != 0){
-        my $range_print = &RANGE_OUT($range);
-        print "$array[0]\t$range_print\tTMD\n";
-        $range =~ s/^[i|o]\d+?-\d+?([i|o].+$)/$1/;
-        $hel_num = $hel_num - 1;
-        if ($hel_num != 0){
-            redo;
-        }
-        else{
-            next;
+    $array[2] =~ /^ExpAA=(\d+\.\d+)/;
+    my $cutoff = $1;
+    if ( $cutoff < 18 ){
+        next;
+    }
+    else{
+        $array[4] =~ /^PredHel=(\d+)$/;
+        my $hel_num = $1;
+        $array[5] =~ /^Topology=(.+)$/;
+        my $range = $1;
+        while ( $hel_num != 0 ){
+            my $range_print = &RANGE_OUT($range);
+            print "$array[0]\t$range_print\tTMD\n";
+            $range =~ s/^[i|o]\d+?-\d+?([i|o].+$)/$1/;
+            $hel_num = $hel_num - 1;
+            if ($hel_num != 0){
+                redo;
+            }
+            else{
+                next;
+            }
         }
     }
 }
