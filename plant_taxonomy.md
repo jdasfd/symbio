@@ -425,11 +425,10 @@ done
 hmmpress Pfam-A.hmm
 ```
 
-- TMHMM
+- Other software
 
 ```bash
-pip3 install -U pybiolib
-biolib run DTU/DeepTMHMM --help
+brew install dos2unix
 ```
 
 ## CDS or protein selection
@@ -824,14 +823,23 @@ ls pfam/*.pfam.tsv |
         cat {}.pfam.tsv |
             tsv-filter -H --iregex Domain:pk --le E_value:"1e-4" |
             sed 1d |
-            tsv-select -f 1,2,3,4,5 \
+            tsv-select -f 1 |
+            tsv-uniq \
+            > KD/{/}.lst
+        cat {}.pfam.tsv |
+            sed 1d |
+            tsv-join -f KD/{/}.lst -k 1 |
+            tsv-select -f 1,2,4,5,3 \
             > KD/{/}.tsv
+        rm KD/{/}.lst
     '
 
+rm all_KD.tsv
 for file in $(ls KD/*.tsv)
 do
     cat ${file} |
-        tsv-select -f 2 \
+        tsv-select -f 2 |
+        tsv-filter --iregex 1:pk \
         >> all_KD.tsv
 done
 
@@ -840,14 +848,24 @@ cat all_KD.tsv |
     sort -r -nk 2,2 \
     > tmp && mv tmp all_KD.tsv
 
-rm all_KD_pro.lst
-# all proteins with the pkinase domain
+rm all_KD_species.tsv
+# all proteins with the pk domain among species
 ls KD/*.tsv |
     parallel -j 12 --keep-order '
-        cat {} | cut -f 1 | tsv-uniq >> all_KD_pro.lst
+        cat {} |
+            cut -f 1 |
+            tsv-uniq |
+            wc -l |
+            awk -v spe={/.} '\''{print (spe"\t"$0)}'\'' \
+            >> all_KD_species.tsv
     '
 
-cat all_KD_pro.lst | wc -l
+# all proteins
+cat all_KD_species.tsv |
+    cut -f 2 |
+    tr '\n' '+' |
+    sed 's/+$/\n/' |
+    bc
 #204137
 
 # extract all protein sequences contained the kinase domain
