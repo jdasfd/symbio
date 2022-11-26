@@ -892,18 +892,93 @@ Manually upload files to [TMHMM](https://services.healthtech.dtu.dk/service.php?
 
 Although `selenium` could deal with this automatically, but there are always problems that I cannot solve. But still, a script will be saved in [scripts](https://github.com/jdasfd/symbio/tree/main/scripts). It will be completed later (maybe). XD
 
+RLK (receptor-like receptor) structures:
+
+From N-terminal ECD (extracellular domain) - TMD (transmembrane domain) - KD (kinase domain) to C-terminal.
+
+So domains should be formatted correctly for a true RLK.
+
 ```bash
+cd ~/data/symbio/DOMAIN
+
 mkdir -p ~/data/symbio/DOMAIN/TMD
-# manually copy all results into a tsv
+# manually doing this steps:
+# upload pep.fa acquired from the previous step to TMHMM 2.0 websites
+# copy all results into a tsv
 
-mkdir ~/data/symbio/DOMAIN/results
-dos2unix *.tsv
+mkdir ~/data/symbio/DOMAIN/RLK
 
-for file in $(ls)
-do
-    echo "==> ${file}"
-    perl ../../scripts/tmhmm_result.pl -i ${file} > ../results/${file}
-done
+dos2unix TMD/*.tsv
+
+# if there is at least a TMD
+# retrieved as potential RLK proteins
+ls KD/*.tsv |
+    parallel -j 12 --keep-order '
+        echo "==> {/.}"
+        perl ../scripts/tmhmm_result.pl -i TMD/{/.}.tsv |
+            tsv-select -f 1,4,2,3 \
+            > RLK/{/.}.tsv
+        cat {} |
+            tsv-select -f 1,2,3,4 \
+            >> RLK/{/.}.tsv
+        cat RLK/{/.}.tsv |
+            tsv-select -f 1 |
+            tsv-uniq |
+            tsv-sort > RLK/{/.}.tmp.lst
+        if [ -f RLK/{/.}.sort.tsv ]; then
+            rm RLK/{/.}.sort.tsv
+        fi
+        for acc in $(cat RLK/{/.}.tmp.lst)
+        do
+            cat RLK/{/.}.tsv |
+                tsv-filter --str-eq 1:${acc} |
+                tsv-sort -nk 3,3 \
+                >> RLK/{/.}.sort.tsv
+        done
+        rm RLK/{/.}.tmp.lst
+    '
+
+ls RLK/*.sort.tsv |
+    sed 's/\.sort\.tsv$//' |
+    parallel -j 12 --keep-order '
+        echo "==> {/}"
+        cat {}.sort.tsv |
+            cut -f 1 |
+            uniq |
+            wc -l |
+            awk -v spe={/} '\''{print (spe"\t"$0)}'\'' \
+            >> all_RLK_pot_species.tsv
+    '
+
+# extract RLK to .lst according to RLK structure
+ls RLK/*.sort.tsv |
+    sed 's/\.sort\.tsv$//' |
+    parallel -j 12 --keep-order '
+        echo "==> {/}"
+        cat {}.sort.tsv |
+            perl ../scripts/RLK.pl \
+            > {}.RLK.lst
+        cat {}.sort.tsv |
+            tsv-join -f {}.RLK.lst -k 1 \
+            > {}.RLK.tsv
+        rm {}.RLK.lst
+    '
+
+ls RLK/*.RLK.tsv |
+    sed 's/\.RLK\.tsv$//' |
+    parallel -j 12 --keep-order '
+        echo "==> {/}"
+        cat {}.RLK.tsv |
+            cut -f 1 |
+            uniq |
+            wc -l |
+            awk -v spe={/} '\''{print (spe"\t"$0)}'\'' \
+            >> all_RLK_true_species.tsv
+    '
+```
+
+
+
 ```
 
 ## RNA-seq of AM symbiosis
