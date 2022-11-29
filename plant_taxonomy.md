@@ -511,7 +511,7 @@ cat all_KD_species.tsv |
     bc
 #204137
 
-# extract all protein sequences contained the kinase domain
+# extract all protein sequences contained pk
 mkdir -p ~/data/symbio/DOMAIN/seq_KD
 
 ls KD/*.tsv |
@@ -529,39 +529,52 @@ wc -l ./seq_KD/*.fa | grep 'total' | perl -p -e 's/\s+(\d+).+$/$1\/2/' | bc
 # extraction complete
 ```
 
-- `TMHMM2` for transmembrane domain identification
+### `TMHMM2` for transmembrane domain identification
 
 Manually upload files to [TMHMM](https://services.healthtech.dtu.dk/service.php?TMHMM-2.0) and copy results into a tsv file.
 
-Although `selenium` could deal with this automatically, but there are always problems that I cannot solve. But still, a script will be saved in [scripts](https://github.com/jdasfd/symbio/tree/main/scripts). It will be completed later (maybe). XD
-
-RLK (receptor-like receptor) structures:
-
-From N-terminal ECD (extracellular domain) - TMD (transmembrane domain) - KD (kinase domain) to C-terminal.
-
-So domains should be formatted correctly for a true RLK.
+Although `selenium` could deal with this automatically, but there are always problems that I cannot solve. But still, a script will be saved in [scripts](https://github.com/jdasfd/symbio/tree/main/scripts). It will be completed later (maybe XD).
 
 ```bash
 cd ~/data/symbio/DOMAIN
 
-mkdir -p ~/data/symbio/DOMAIN/TMD
-# manually doing this steps:
-# upload pep.fa acquired from the previous step to TMHMM 2.0 websites
-# copy all results into a tsv
+mkdir -p TMD COMBINE
 
-mkdir ~/data/symbio/DOMAIN/RLK
+cat species.lst |
+    parallel -j 12 --keep-order '
+        touch TMD/{}.tsv
+    '
+# manually doing this steps:
+# upload pep.fa of each specie acquired from the previous step to TMHMM 2.0 websites
+# copy all predicted results into a tsv named by species
+# tsv-utils could only deal with those files in unix style (LF), convert them using dos2unix
 
 dos2unix TMD/*.tsv
 
-# if there is at least a TMD
-# retrieved as potential RLK proteins
-ls KD/*.tsv |
+wc -l TMD/* | grep 'total'
+#  204137 total
+# alright
+
+# retrieved potential pk proteins if they had at least a TMD
+cat species.lst |
     parallel -j 12 --keep-order '
-        echo "==> {/.}"
-        perl ../scripts/tmhmm_result.pl -i TMD/{/.}.tsv |
+        echo "==> {}"
+        perl ../scripts/tmhmm_result.pl -i TMD/{}.tsv |
             tsv-select -f 1,4,2,3 \
-            > RLK/{/.}.tsv
-        cat {} |
+            > TMD/{}.TMD.tsv
+        '
+
+cat species.lst |
+    parallel -j 12 --keep-order '
+        echo "==> {}"
+        cat TMD/{}.tsv |
+            cut -f 1 |
+            tsv-join -f TMD/{}.TMD.tsv \
+            -k 1 -e \
+            > TMD/{}.not_TMD.lst
+    '
+```
+
             tsv-select -f 1,2,3,4 \
             >> RLK/{/.}.tsv
         cat RLK/{/.}.tsv |
