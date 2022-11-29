@@ -575,62 +575,81 @@ cat species.lst |
     '
 ```
 
+### Extract all potential RLK
+
+All proteins with characteristic that TMD appeared before KD (from N-terminal to C-terminal, sorted by start) were treated as potential targets of RLK.
+
+After sorted by col3 (start pos), a script named `RLK.pl` could just judge whether TMD showed before KD.
+
+```bash
+# Combine pfam results with TMD
+# sort with the domain start pos
+cat species.lst |
+    parallel -j 12 --keep-order '
+        echo "==> {}"
+        cat KD/{}.tsv |
             tsv-select -f 1,2,3,4 \
-            >> RLK/{/.}.tsv
-        cat RLK/{/.}.tsv |
+            > COMBINE/{}.tsv
+        cat TMD/{}.TMD.tsv \
+            >> COMBINE/{}.tsv
+        cat COMBINE/{}.tsv |
             tsv-select -f 1 |
             tsv-uniq |
-            tsv-sort > RLK/{/.}.tmp.lst
-        if [ -f RLK/{/.}.sort.tsv ]; then
-            rm RLK/{/.}.sort.tsv
+            tsv-sort > COMBINE/{}.tmp.lst
+        if [ -f COMBINE/{}.sort.tsv ]; then
+            rm COMBINE/{}.sort.tsv
         fi
-        for acc in $(cat RLK/{/.}.tmp.lst)
+        for acc in $(cat COMBINE/{}.tmp.lst)
         do
-            cat RLK/{/.}.tsv |
+            cat COMBINE/{}.tsv |
                 tsv-filter --str-eq 1:${acc} |
                 tsv-sort -nk 3,3 \
-                >> RLK/{/.}.sort.tsv
+                >> COMBINE/{}.sort.tsv
         done
-        rm RLK/{/.}.tmp.lst
+        rm COMBINE/{}.tmp.lst
     '
 
-ls RLK/*.sort.tsv |
-    sed 's/\.sort\.tsv$//' |
+# count for every specie
+rm all_PK_pot_species.tsv
+cat species.lst |
     parallel -j 12 --keep-order '
-        echo "==> {/}"
-        cat {}.sort.tsv |
+        echo "==> {}"
+        cat COMBINE/{}.sort.tsv |
             cut -f 1 |
             uniq |
             wc -l |
-            awk -v spe={/} '\''{print (spe"\t"$0)}'\'' \
-            >> all_RLK_pot_species.tsv
+            awk -v spe={} '\''{print (spe"\t"$0)}'\'' \
+            >> all_PK_pot_species.tsv
     '
 
-# extract RLK to .lst according to RLK structure
-ls RLK/*.sort.tsv |
-    sed 's/\.sort\.tsv$//' |
+# filter according to RLK structure
+# that is TMD appeared before KD
+cat species.lst |
     parallel -j 12 --keep-order '
-        echo "==> {/}"
-        cat {}.sort.tsv |
+        echo "==> {}"
+        cat COMBINE/{}.sort.tsv |
             perl ../scripts/RLK.pl \
-            > {}.RLK.lst
-        cat {}.sort.tsv |
-            tsv-join -f {}.RLK.lst -k 1 \
-            > {}.RLK.tsv
-        rm {}.RLK.lst
+            > COMBINE/{}.PK.lst
+        '
+
+rm all_PK_true_species.tsv
+cat species.lst |
+    parallel -j 12 --keep-order '
+        echo "==> {}"
+        cat COMBINE/{}.PK.lst |
+            wc -l |
+            awk -v spe={} '\''{print (spe"\t"$0)}'\'' \
+            >> all_PK_true_species.tsv
     '
 
-ls RLK/*.RLK.tsv |
-    sed 's/\.RLK\.tsv$//' |
-    parallel -j 12 --keep-order '
-        echo "==> {/}"
-        cat {}.RLK.tsv |
-            cut -f 1 |
-            uniq |
-            wc -l |
-            awk -v spe={/} '\''{print (spe"\t"$0)}'\'' \
-            >> all_RLK_true_species.tsv
-    '
+# combine two files
+cat all_PK_pot_species.tsv |
+    tsv-join -f all_PK_true_species.tsv -k 1 -a 2 |
+    tsv-sort -k 1,1 |
+    sed '1ispecies\tpot_PK\ttrue_PK' \
+    > all_PK_species.tsv
+
+rm all_PK_*_species.tsv
 ```
 
 

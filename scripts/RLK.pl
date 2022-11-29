@@ -31,11 +31,17 @@ while(<>){
     }
 }
 
-for my $keys (keys %RLK){
-    if ( $RLK{$keys} == 1 ){
-        print "$keys\n";
+END{
+    $domain_list = join ("#", @domains);
+    if ( $domain_list =~ /.+?#TMD.+?pk.*/i ){
+        $RLK{$gene}++;
     }
-    else{
-        next;
+    for my $keys (keys %RLK){
+        if ( $RLK{$keys} == 1 ){
+            print "$keys\n";
+        }
+        else{
+            next;
+        }
     }
 }
