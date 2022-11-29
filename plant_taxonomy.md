@@ -394,9 +394,15 @@ done
 # OK
 ```
 
-### Orthogroups RLK identifying
+## RLK identifying
 
-- Identify domains from each protein seq via `hmmscan`
+RLK (receptor-like receptor) structures:
+
+From N-terminal ECD (extracellular domain) - TMD (transmembrane domain) - KD (kinase domain) to C-terminal.
+
+So domains should be formatted correctly for a true RLK.
+
+### Identify domains among all proteins via `hmmscan`
 
 ```bash
 cd ~/data/symbio
@@ -415,6 +421,10 @@ ls DOMAIN/pfam/*.txt |
         perl scripts/hmm_results.pl -i {} \
         > DOMAIN/pfam/{/.}.pfam.tsv
     '
+
+ls DOMAIN/pfam/*.txt |
+    parallel -j 12 --keep-order 'echo {/.}' \
+    > DOMAIN/species.lst
 ```
 
 - Extract kinase domain
