@@ -652,8 +652,109 @@ cat all_PK_pot_species.tsv |
 rm all_PK_*_species.tsv
 ```
 
+### Repeated domains filtering
 
+Because of redundant results acquired from `hmmscan` (using PFAM-A database with cutoff E-value 1e-1), a process should be adopted for reducing repeated domains.
 
+The main principle - filtering according to E-value.
+
+Protein domains of each protein were sorted by E-value (from less to more). The domains with smaller E-value were kept, and every repeated domains with larger E-value were removed.
+
+```bash
+cd ~/data/symbio/DOMAIN
+mkdir -p UNIQ
+
+# sort according to E_value from less to more
+cat species.lst |
+    parallel -j 12 --keep-order '
+        echo "==> {}"
+        if [ -f UNIQ/{}.sort.tsv ]; then
+            rm UNIQ/{}.sort.tsv
+        fi
+        for acc in $(cat COMBINE/{}.PK.lst)
+        do
+            cat pfam/{}.pfam.tsv |
+                tsv-filter -H --str-eq QUERY:${acc} |
+                sed 1d |
+                tsv-select -f 1,2,3,4,5 |
+                sort -gk 3,3 \
+                >> UNIQ/{}.sort.tsv
+        done
+    '
+# sort -g: use generic numerical value
+
+cat species.lst |
+    parallel -j 12 --keep-order '
+        echo "==> {}"
+        cat UNIQ/{}.sort.tsv |
+            perl ../scripts/dom_fil_e.pl |
+            tsv-select -f 1,4,5,2 \
+            > UNIQ/{}.uniq.tsv
+    '
+
+# combine TMD to uniq.tsv
+cat species.lst |
+    parallel -j 12 -keep-order '
+        echo "==> {}"
+        for acc in $(cat COMBINE/{}.PK.lst)
+        do
+            cat TMD/{}.TMD.tsv |
+                tsv-filter --str-eq 1:${acc} |
+                tsv-select -f 1,3,4,2 \
+                >> UNIQ/{}.uniq.tsv
+        done
+    '
+
+# sort from start pos
+cat species.lst |
+    parallel -j 12 --keep-order '
+        echo "==> {}"
+        cat UNIQ/{}.uniq.tsv |
+            tsv-select -f 1 |
+            tsv-uniq |
+            tsv-sort > UNIQ/{}.tmp.lst
+        if [ -f UNIQ/{}.sort_uniq.tsv ]; then
+            rm UNIQ/{}.sort_uniq.tsv
+        fi
+        for acc in $(cat UNIQ/{}.tmp.lst)
+        do
+            cat UNIQ/{}.uniq.tsv |
+                tsv-filter --str-eq 1:${acc} |
+                tsv-sort -nk 2,2 \
+                >> UNIQ/{}.sort_uniq.tsv
+        done
+        rm UNIQ/{}.tmp.lst
+    '
+
+rm all_KD_uniq.tsv
+for file in $(ls UNIQ_RLK/*.sort_uniq.tsv)
+do
+    cat ${file} |
+        tsv-select -f 4 |
+        tsv-filter --iregex 1:pk \
+        >> all_KD_uniq.tsv
+done
+
+cat all_KD_uniq.tsv |
+    tsv-summarize -g 1 --count |
+    sort -r -nk 2,2 \
+    > tmp && mv tmp all_KD_uniq.tsv
+```
+
+```bash
+cd ~/data/symbio/DOMAIN
+mkdir -p PICTURE
+mkdir -p SEQ
+
+ls RLK/*.RLK.lst |
+    sed 's/\.RLK\.lst$//' |
+    parallel -j 12 -keep-order '
+        echo "==> {/}"
+        faops some -l 0 ../primary_transcripts/{/}.pep.fa \
+            {}.RLK.lst SEQ/{/}.RLK.fa
+        faops size SEQ/{/}.RLK.fa \
+            > SEQ/{/}.len.tsv
+    '
 ```
 
 ## RNA-seq of AM symbiosis
@@ -672,3 +773,12 @@ do
     ../../symbio/HMM/PFAM/Pfam-A.hmm ${file}
 done
 ```
+
+```bash
+perl ../scripts/tmhmm_result.pl -i TMD/actinidia_chinensis.tsv > actinidia_chinensis.RLK.lst
+
+cat pfam/actinidia_chinensis.pfam.tsv | sed 1d | tsv-join -f actinidia_chinensis.RLK.lst -k 1 > actinidia_chinensis.RLK.tsv
+
+
+```
+]()
