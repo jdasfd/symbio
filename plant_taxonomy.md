@@ -427,10 +427,15 @@ ls DOMAIN/pfam/*.txt |
     > DOMAIN/species.lst
 ```
 
-- Extract kinase domain
+### Extract kinase domain
+
+All KDs were extracted according to `--iregex Domain:pk`, which means that other domains contained `pk` would also be included.
+
+E-value cutoff <= 1e-4 for KDs - kinase domains are relatively more conserved than ECD.
 
 ```bash
 cd ~/data/symbio/DOMAIN
+mkdir -p ~/data/symbio/DOMAIN/KD
 
 rm all_domains.tsv
 # all domains were extracted
@@ -450,27 +455,26 @@ cat all_domains.tsv |
 
 cat all_domains.tsv | wc -l
 #19622
-# all domains identified, including those repeated domains from a location
+# all domains identified, including those domains scanned repeatedly from a location
 # this will be considered later
 
-# extract all domains of pkinase with cutoff E-value <= 1e-4
-# be aware of pk may contained domains not only pkinase
-ls pfam/*.pfam.tsv |
-    perl -p -e 's/\.pfam\.tsv$//' |
+# extract all domains contained pk with cutoff E-value <= 1e-4
+# other domains would be included no matter E-value
+cat species.lst |
     parallel -j 12 --keep-order '
-        echo "==> {/}"
-        cat {}.pfam.tsv |
+        echo "==> {}"
+        cat pfam/{}.pfam.tsv |
             tsv-filter -H --iregex Domain:pk --le E_value:"1e-4" |
             sed 1d |
             tsv-select -f 1 |
             tsv-uniq \
-            > KD/{/}.lst
-        cat {}.pfam.tsv |
+            > KD/{}.lst
+        cat pfam/{}.pfam.tsv |
             sed 1d |
             tsv-join -f KD/{/}.lst -k 1 |
             tsv-select -f 1,2,4,5,3 \
-            > KD/{/}.tsv
-        rm KD/{/}.lst
+            > KD/{}.tsv
+        rm KD/{}.lst
     '
 
 rm all_KD.tsv
