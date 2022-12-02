@@ -255,6 +255,7 @@ do
 done
 # run above code for sure again
 
+# upload to the workstation
 rsync -avP primary_transcripts/ name@ip:jyq/data/symbio/
 ```
 
@@ -270,7 +271,7 @@ cd ~/data/symbio
 bash scripts/busco.sh
 ```
 
-## OrthoFinder identifying gene orthogroups
+## Identifying gene orthogroups via orthogroups
 
 ### OrthoFinder processing
 
@@ -394,7 +395,7 @@ done
 # OK
 ```
 
-## RLK identifying
+## Identify RLK
 
 RLK (receptor-like receptor) structures:
 
@@ -529,7 +530,7 @@ wc -l ./seq_KD/*.fa | grep 'total' | perl -p -e 's/\s+(\d+).+$/$1\/2/' | bc
 # extraction complete
 ```
 
-### `TMHMM2` for transmembrane domain identification
+### Predict transmembrane domain via `TMHMM2`
 
 Manually upload files to [TMHMM](https://services.healthtech.dtu.dk/service.php?TMHMM-2.0) and copy results into a tsv file.
 
@@ -579,7 +580,7 @@ cat species.lst |
 
 All proteins with characteristic that TMD appeared before KD (from N-terminal to C-terminal, sorted by start) were treated as potential targets of RLK.
 
-After sorted by col3 (start pos), a script named `RLK.pl` could just judge whether TMD showed before KD.
+After sorted by col3 (start pos), a script named `domain_order.pl` could just judge whether TMD showed before KD.
 
 ```bash
 # Combine pfam results with TMD
@@ -628,7 +629,7 @@ cat species.lst |
     parallel -j 12 --keep-order '
         echo "==> {}"
         cat COMBINE/{}.sort.tsv |
-            perl ../scripts/RLK.pl \
+            perl ../scripts/domain_order.pl \
             > COMBINE/{}.PK.lst
         '
 
@@ -652,7 +653,7 @@ cat all_PK_pot_species.tsv |
 rm all_PK_*_species.tsv
 ```
 
-### Repeated domains filtering
+### Remove repeated domains
 
 Because of redundant results acquired from `hmmscan` (using PFAM-A database with cutoff E-value 1e-1), a process should be adopted for reducing repeated domains.
 
@@ -687,7 +688,7 @@ cat species.lst |
     parallel -j 12 --keep-order '
         echo "==> {}"
         cat UNIQ/{}.sort.tsv |
-            perl ../scripts/dom_fil_e.pl |
+            perl ../scripts/domain_uniq.pl |
             tsv-select -f 1,4,5,2 \
             > UNIQ/{}.uniq.tsv
     '
@@ -727,9 +728,9 @@ cat species.lst |
     '
 
 rm all_KD_uniq.tsv
-for file in $(ls UNIQ_RLK/*.sort_uniq.tsv)
+for species in $(cat species.lst)
 do
-    cat ${file} |
+    cat UNIQ/${species}.sort_uniq.tsv |
         tsv-select -f 4 |
         tsv-filter --iregex 1:pk \
         >> all_KD_uniq.tsv
@@ -740,6 +741,123 @@ cat all_KD_uniq.tsv |
     sort -r -nk 2,2 \
     > tmp && mv tmp all_KD_uniq.tsv
 ```
+
+### Pick pkinase domains only
+
+All domains contained `pk` were collected. But RLK only contains the pkinase domain.
+
+Those domains which are truly pkinase were kept according to `all_KD_uniq.tsv`.
+
+```bash
+cd ~/data/symbio/DOMAIN
+mkdir -p RLK
+
+# all pkinase protein names
+cat species.lst |
+    parallel -j 12 --keep-order '
+        cat UNIQ/{}.sort_uniq.tsv |
+            tsv-filter --or --str-eq 4:Pkinase \
+                --str-eq 4:Pkinase_fungal \
+                --str-eq 4:PK_Tyr_Ser-Thr |
+            cut -f 1 |
+            tsv-uniq \
+            > RLK/{}.RLK.lst
+    '
+
+# all RLK that truly contained the pkinase domain
+cat species.lst |
+    parallel -j 12 --keep-order '
+        echo "==> {}"
+        cat UNIQ/{}.sort_uniq.tsv |
+            tsv-join -f RLK/{}.RLK.lst -k 1 \
+            > RLK/{}.RLK.tsv
+    '
+
+echo -e "species\tRLK_num" > all_RLK_species.tsv
+cat species.lst |
+    parallel -j 12 --keep-order '
+        echo "==> {}"
+        cat RLK/{}.RLK.tsv |
+            tsv-select -f 1 |
+            tsv-uniq |
+            wc -l |
+            awk -v spe={} '\''{print (spe"\t"$0)}'\'' \
+            >> all_RLK_species.tsv
+    '
+
+cat all_PK_species.tsv |
+    tsv-join -H -f all_RLK_species.tsv -k species -a RLK_num \
+    > all_count_species.tsv
+
+perl ~/Scripts/fig_table/xlsx2csv.pl -f ../info/taxo_genom.xlsx |
+    mlr --icsv --otsv cat |
+    tsv-select -H -f SpeciesName,ComName |
+    sed 1d |
+    perl -nle 'print lc $_;' |
+    sed '1ispecies\ttaxo' \
+    > taxonomy.tsv
+
+cat taxonomy.tsv |
+    tsv-join -H -f all_count_species.tsv -k species -a pot_PK,true_PK,RLK_num \
+    > all_taxo_count_species.tsv
+```
+
+### Count all ECDs
+
+```bash
+mkdir -p ~/data/symbio/group
+cd ~/data/symbio
+
+cat DOMAIN/RLK/*.RLK.lst > group/all_RLK.lst
+cat group/all_RLK.lst | wc -l
+#63888
+
+# here considering tsv-join for orthogroups identification
+for ortho in $(cat Orthogroups/ortho.lst)
+do
+    echo "==> ${ortho}"
+    cat Orthogroups/groups/${ortho}.csv |
+        mlr --icsv --otsv cat |
+        cut -f 2 |
+        sed 1d |
+        tr ',' '\n' |
+        sed 's/^\s//' |
+        sed '/^$/d' |
+        awk -v ortho=${ortho} '{print ($0"\t"ortho)}' \
+        >> group/all_pro_ortho.tsv
+done
+
+cd ~/data/symbio/group
+
+cat all_pro_ortho.tsv | wc -l
+
+cat ../info/rm_ceratophyllum_demersum.lst |
+    perl -nle '@array = split/\|/, $_; print "ceratophyllum_demersum_$array[8]";' \
+    > rm_ceratophyllum_demersum.lst
+#5005533
+
+cat all_pro_ortho.tsv |
+    tsv-join -f rm_ceratophyllum_demersum.lst -k 1 -e -z \
+    > tmp && mv tmp all_pro_ortho.tsv
+
+cat all_pro_ortho.tsv | wc -l
+#5005513
+
+cat all_RLK.lst |
+    tsv-join -f all_pro_ortho.tsv -k 1 -a 2 \
+    > RLK_ortho.tsv
+
+cat RLK_ortho.tsv | wc -l
+#63766
+
+cat all_RLK.lst | tsv-join -f RLK_ortho.tsv -k 1 -e > RLK_without_ortho.lst
+
+cat RLK_ortho.tsv | tsv-summarize -g 2 --count > ortho_count.tsv
+wc -l ortho_count.tsv
+#1486 ortho_count.tsv
+```
+
+### Picture all domains
 
 ```bash
 cd ~/data/symbio/DOMAIN
@@ -753,11 +871,13 @@ ls RLK/*.RLK.lst |
         faops some -l 0 ../primary_transcripts/{/}.pep.fa \
             {}.RLK.lst SEQ/{/}.RLK.fa
         faops size SEQ/{/}.RLK.fa \
-            > SEQ/{/}.len.tsv
+            > SEQ/{}.len.tsv
     '
 ```
 
 ## RNA-seq of AM symbiosis
+
+
 
 ```bash
 mkdir ~/data/symbio/sra
