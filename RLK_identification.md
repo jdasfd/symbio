@@ -311,6 +311,10 @@ orthofinder -fg Results_Oct20/ -M msa -X
 
 Acquire results from the workstation using rsync and put in the dir `Orthogroups` (command not shown).
 
+In Ceratophyllum demersum, there are proteins acquired from six box translation, which means that suspect repeat proteins should be removed from the results.
+
+All protein names were recorded into a file named `info/rm_ceratophyllum_demersum.lst`.
+
 ```bash
 cd ~/data/symbio/Orthogroups
 mkdir groups
@@ -328,32 +332,41 @@ cat ortho.lst |
         bash ../scripts/ortho_extract.sh {} ./groups/
     '
 
-mkdir pro3
-# extract 3 longest proteins
-cat ortho.lst |
-    parallel -j 16 --keep-order '
-        echo "==> {}"
-        bash ../scripts/pro_extract.sh groups/{}.csv ../primary_transcripts/ {}
-        if [ -f {}.fa ]; then
-            cat {}.fa |
-                faops size stdin |
-                sort -nk 2,2 -r |
-                head -n 3 |
-                cut -f 1 \
-                > {}.lst
-            faops some {}.fa {}.lst ./pro3/{}.fa
-            rm {}.lst {}.fa
-        else
-            echo problem
-        fi
-    '
+# here considering tsv-join for orthogroups identification
+for ortho in $(cat ortho.lst)
+do
+    echo "==> ${ortho}"
+    cat groups/${ortho}.csv |
+        mlr --icsv --otsv cat |
+        cut -f 2 |
+        sed 1d |
+        tr ',' '\n' |
+        sed 's/^\s//' |
+        sed '/^$/d' |
+        awk -v ortho=${ortho} '{print ($0"\t"ortho)}' \
+        >> group/all_pro_ortho.tsv
+done
+
+cat all_pro_ortho.tsv | wc -l
+#5005513
+
+cat all_pro_ortho.tsv |
+    tsv-join -f ../info/rm_ceratophyllum_demersum.lst -k 1 -e -z \
+    > tmp && mv tmp all_pro_ortho.tsv
+
+cat all_pro_ortho.tsv | wc -l
+#5005513
+
+dos2unix Orthogroups.GeneCount.tsv
+
+cat Orthogroups.GeneCount.tsv |
+    tsv-select -H -f Orthogroup,Total \
+    > ortho_gene.tsv
 ```
 
 ### Renaming and extracting
 
 After OrthoFinder processing, those pep files contained `:` in their seq_ids will be converted to `_`. Protein extraction will fail if you do not change your seq_ids.
-
-The pep file of ceratophyllum_demersum has predicted sequences generated from six frame translation, remove them manually (code not shown).
 
 ```bash
 cd ~/data/symbio
@@ -746,7 +759,11 @@ cat all_KD_uniq.tsv |
 
 All domains contained `pk` were collected. But RLK only contains the pkinase domain.
 
-Those domains which are truly pkinase were kept according to `all_KD_uniq.tsv`.
+Those domains in `all_KD_uniq.tsv` were checked through [InterPro](https://www.ebi.ac.uk/interpro/), and true pkinase domain were kept.
+
+- Pkinase
+- PK_Tyr_Ser-Thr
+- Pkinase_fungal
 
 ```bash
 cd ~/data/symbio/DOMAIN
@@ -798,8 +815,9 @@ perl ~/Scripts/fig_table/xlsx2csv.pl -f ../info/taxo_genom.xlsx |
     > taxonomy.tsv
 
 cat taxonomy.tsv |
-    tsv-join -H -f all_count_species.tsv -k species -a pot_PK,true_PK,RLK_num \
-    > all_taxo_count_species.tsv
+    tsv-join -H -f all_count_species.tsv \
+        -k species -a pot_PK,true_PK,RLK_num \
+    > Species_result.tsv
 ```
 
 ### Count all ECDs
@@ -877,8 +895,6 @@ ls RLK/*.RLK.lst |
 
 ## RNA-seq of AM symbiosis
 
-
-
 ```bash
 mkdir ~/data/symbio/sra
 cd ~/data/symbio/sra
@@ -901,4 +917,3 @@ cat pfam/actinidia_chinensis.pfam.tsv | sed 1d | tsv-join -f actinidia_chinensis
 
 
 ```
-]()
