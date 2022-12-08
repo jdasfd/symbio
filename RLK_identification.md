@@ -428,7 +428,7 @@ cat PROTEIN/*.length.tsv | wc -l
 rm PROTEIN/all_pro_spe.name.tsv
 ls PROTEIN/*.length.tsv |
     sed -s 's/\.length\.tsv$//' |
-    parallel -j 12 --keep-order '
+    parallel -j 1 --keep-order '
         echo "==> {/}"
         cat {}.length.tsv |
             cut -f 1 |
@@ -906,46 +906,15 @@ cat taxonomy.tsv |
 ### Count all ECDs
 
 ```bash
-mkdir -p ~/data/symbio/group
-cd ~/data/symbio
+mkdir -p ~/data/symbio/RLK
+cd ~/data/symbio/RLK
 
-cat DOMAIN/RLK/*.RLK.lst > group/all_RLK.lst
-cat group/all_RLK.lst | wc -l
+cat ../DOMAIN/RLK/*.RLK.lst > all_RLK.lst
+cat all_RLK.lst | wc -l
 #63888
 
-# here considering tsv-join for orthogroups identification
-for ortho in $(cat Orthogroups/ortho.lst)
-do
-    echo "==> ${ortho}"
-    cat Orthogroups/groups/${ortho}.csv |
-        mlr --icsv --otsv cat |
-        cut -f 2 |
-        sed 1d |
-        tr ',' '\n' |
-        sed 's/^\s//' |
-        sed '/^$/d' |
-        awk -v ortho=${ortho} '{print ($0"\t"ortho)}' \
-        >> group/all_pro_ortho.tsv
-done
-
-cd ~/data/symbio/group
-
-cat all_pro_ortho.tsv | wc -l
-
-cat ../info/rm_ceratophyllum_demersum.lst |
-    perl -nle '@array = split/\|/, $_; print "ceratophyllum_demersum_$array[8]";' \
-    > rm_ceratophyllum_demersum.lst
-#5005533
-
-cat all_pro_ortho.tsv |
-    tsv-join -f rm_ceratophyllum_demersum.lst -k 1 -e -z \
-    > tmp && mv tmp all_pro_ortho.tsv
-
-cat all_pro_ortho.tsv | wc -l
-#5005513
-
 cat all_RLK.lst |
-    tsv-join -f all_pro_ortho.tsv -k 1 -a 2 \
+    tsv-join -f ../Orthogroups/all_pro_ortho.tsv -k 1 -a 2 \
     > RLK_ortho.tsv
 
 cat RLK_ortho.tsv | wc -l
