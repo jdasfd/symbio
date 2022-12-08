@@ -920,11 +920,47 @@ cat all_RLK.lst |
 cat RLK_ortho.tsv | wc -l
 #63766
 
-cat all_RLK.lst | tsv-join -f RLK_ortho.tsv -k 1 -e > RLK_without_ortho.lst
+cat all_RLK.lst |
+    tsv-join -f RLK_ortho.tsv -k 1 -e \
+    > RLK_without_ortho.lst
+cat RLK_without_ortho.lst | wc -l
+#122
 
-cat RLK_ortho.tsv | tsv-summarize -g 2 --count > ortho_count.tsv
-wc -l ortho_count.tsv
-#1486 ortho_count.tsv
+cat RLK_ortho.tsv |
+    tsv-summarize -g 2 --count |
+    sort -nk 2,2 -r |
+    sed '1iOrthogroup\tRLK_num' \
+    > ortho_count.tsv
+
+cat ortho_count.tsv | sed 1d | wc -l
+#1486
+# All 63766 RLKs were grouped into 1486 orthogroups
+
+cat ortho_count.tsv |
+    tsv-join -H -f ../Orthogroups/ortho_gene.tsv \
+        -k Orthogroup -a Total \
+        > Orthogroup_result.tsv
+
+cat Orthogroup_result.tsv |
+    sed 1d |
+    perl -nlae '
+        $ratio = $F[1]/$F[2];
+        printf "%s\t%.3f\n",$F[0], $ratio;
+    ' |
+    sort -nk 2,2 -r |
+    sed '1iOrthogroup\tRatio'\
+    > Orthogroup_ratio.tsv
+
+# deprecated due to the linux system issue
+# using inside content in the RStudio for substitution
+Rscript -e '
+    library(ggplot2)
+    args <- commandArgs(T)
+    ratio <- read_tsv(args[1])
+    p <- ggplot(ratio, aes(x = Orthogroup, y = Ratio)) +
+         geom_bar(stat = "identity", position = "dodge")
+    ggsave(p, file = "Ortho_ratio.pdf", width = 9, height = 4)
+'
 ```
 
 ### Picture all domains
