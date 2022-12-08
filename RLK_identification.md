@@ -424,6 +424,20 @@ ls primary_transcripts/*.pep.fa |
 
 cat PROTEIN/*.length.tsv | wc -l
 #5444701
+
+rm PROTEIN/all_pro_spe.name.tsv
+ls PROTEIN/*.length.tsv |
+    sed -s 's/\.length\.tsv$//' |
+    parallel -j 12 --keep-order '
+        echo "==> {/}"
+        cat {}.length.tsv |
+            cut -f 1 |
+            awk -v spe={/} '\''{print ($0"\t"spe)}'\'' \
+            >> PROTEIN/all_pro_spe.name.tsv
+    '
+
+cat PROTEIN/all_pro_spe.name.tsv | wc -l
+#5444701
 ```
 
 ## Identify RLK
