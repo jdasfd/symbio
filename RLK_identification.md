@@ -408,6 +408,24 @@ done
 # OK
 ```
 
+### Count the length and the number of proteins
+
+```bash
+cd ~/data/symbio
+mkdir PROTEIN
+
+# all proteins' length
+ls primary_transcripts/*.pep.fa |
+    sed 's/\.pep\.fa$//' |
+    parallel -j 12 --keep-order '
+        echo "==> {/}"
+        faops size {}.pep.fa > PROTEIN/{/}.length.tsv
+    '
+
+cat PROTEIN/*.length.tsv | wc -l
+#5444701
+```
+
 ## Identify RLK
 
 RLK (receptor-like receptor) structures:
@@ -429,16 +447,67 @@ cat info/genome.lst |
             ./HMM/PFAM/Pfam-A.hmm primary_transcripts/{}.pep.fa
     '
 
+# all query sequences
 ls DOMAIN/pfam/*.txt |
-    parallel -j 6 --keep-order '
+    parallel -j 12 --keep-order '
+        cat {} |
+            grep -v '^#' |
+            grep '^Query' |
+            grep '\]$' |
+            wc -l
+        ' |
+    tr '\n' '+' |
+    sed 's/+$/\n/' |
+    bc
+#5431298
+
+ls DOMAIN/pfam/*.txt |
+    parallel -j 12 --keep-order '
         echo "==> {/.}"
         perl scripts/hmm_results.pl -i {} \
         > DOMAIN/pfam/{/.}.pfam.tsv
     '
+# screen will show this command:
+#Missed this line:    [No individual domains that satisfy reporting thresholds (although complete target did)]
 
 ls DOMAIN/pfam/*.txt |
     parallel -j 12 --keep-order 'echo {/.}' \
     > DOMAIN/species.lst
+
+# check whether pfam results contained all proteins
+ls DOMAIN/pfam/*.pfam.tsv |
+    parallel -j 12 --keep-order '
+        cat {} |
+            tsv-select -H -f QUERY |
+            tsv-uniq |
+            wc -l
+    ' |
+    tr '\n' '+' |
+    sed 's/+$/\n/' |
+    bc
+#4237222
+
+# Results without domains
+ls PROTEIN/*.length.tsv |
+    sed 's/\.length\.tsv$//' |
+    parallel -j 12 --keep-order '
+        echo "==>{/}"
+        cat {}.length.tsv |
+            tsv-join -f DOMAIN/pfam/{/}.pfam.tsv -k 1 -e \
+            > PROTEIN/{/}.no_hmm.tsv
+    '
+
+ls PROTEIN/*.no_hmm.tsv |
+    parallel -j 12 --keep-order '
+        cat {} |
+            tsv-select -f 1 |
+            tsv-uniq |
+            wc -l
+    ' |
+    tr '\n' '+' |
+    sed 's/+$/\n/' |
+    bc
+#1207627
 ```
 
 ### Extract kinase domain
