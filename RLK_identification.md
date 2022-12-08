@@ -969,3 +969,31 @@ cat pfam/actinidia_chinensis.pfam.tsv | sed 1d | tsv-join -f actinidia_chinensis
 
 
 ```
+
+unrecognized option '--gdwarf-5'
+
+OG0001905
+OG0002289
+OG0005768
+OG0001821
+OG0010386
+
+```bash
+cd ~/data/symbio/RLK
+
+cat ortho.lst |
+    parallel -j 1 --keep-order '
+        cat ../Orthogroups/all_pro_ortho.tsv |
+            tsv-filter --str-eq 2:{} |
+            cut -f 1 |
+            tsv-join -f ../PROTEIN/all_pro_spe.name.tsv -k 1 -a 2 |
+            tsv-select -f 2 |
+            tsv-join -f <(cat ../DOMAIN/taxonomy.tsv | sed 1d) -k 1 -a 2 |
+            tsv-select -f 2 |
+            tsv-uniq |
+            tr '\''\n'\'' '\'','\'' |
+            sed '\''s/,$/\n/'\'' |
+            awk -v OG={} '\''{print (OG"\t"$0)}'\'' \
+            >> OG_cover/taxo_cover.tsv
+    '
+```
