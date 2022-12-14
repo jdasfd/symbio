@@ -103,3 +103,50 @@ cat info/algae.lst |
 #114595 proteins were failed in extracting domains
 ```
 
+### Extract kinase domain
+
+The reason of choosing kinase domains were recorded in the [RLK_identification.md](RLK_identification.md).
+
+All 3 domains are:
+
+- Pkinase
+- PK_Tyr_Ser-Thr
+- Pkinase_fungal
+
+```bash
+cd ~/data/chlorophyta/DOMAIN
+mkdir -p KD
+
+# all pkinase protein names
+cat ../info/algae.lst |
+    parallel -j 16 -k '
+        echo "==> {}"
+        cat pfam/{}.tsv |
+            tsv-filter -H --or \
+                --str-eq Domain:Pkinase \
+                --str-eq Domain:Pkinase_fungal \
+                --str-eq Domain:PK_Tyr_Ser-Thr |
+            tsv-select -H -f QUERY |
+            sed 1d |
+            tsv-uniq \
+            > KD/{}.KD.lst
+    '
+
+cat ../info/algae.lst |
+    parallel -j 16 -k '
+        echo "==> {}"
+        if [ -f KD/{}.E_sort.KD.tsv ]; then
+            rm KD/{}.E_sort.KD.tsv
+        fi
+        for acc in $(cat KD/{}.KD.lst)
+        do
+            cat pfam/{}.tsv |
+                tsv-filter -H --str-eq QUERY:${acc} |
+                sed 1d |
+                tsv-select -f 1,2,3,4,5 |
+                sort -gk 3,3 \
+                >> KD/{}.E_sort.KD.tsv
+        done
+    '
+```
+
