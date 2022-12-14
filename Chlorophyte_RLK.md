@@ -39,7 +39,7 @@ mkdir -p ~/data/chlorophyta/info/PRO_len
 cat info/algae.lst |
     parallel -j 16 -k '
         faops size PROTEINS/{}.pep \
-            > info/PRO_len/{}.length.tsv
+        > info/PRO_len/{}.length.tsv
     '
 
 cat info/algae.lst |
@@ -48,7 +48,7 @@ cat info/algae.lst |
         cat info/PRO_len/{}.length.tsv |
             cut -f 1 |
             awk -v spe={} '\''{print ($0"\t"spe)}'\'' \
-            >> info/pro_spe.tsv
+        >> info/pro_spe.tsv
     '
 #457986
 ```
@@ -126,10 +126,11 @@ cat ../info/algae.lst |
                 --str-eq Domain:Pkinase \
                 --str-eq Domain:Pkinase_fungal \
                 --str-eq Domain:PK_Tyr_Ser-Thr |
+            tsv-filter -H --le E_value:"1e-4" |
             tsv-select -H -f QUERY |
             sed 1d |
             tsv-uniq \
-            > KD/{}.KD.lst
+        > KD/{}.KD.lst
     '
 
 cat ../info/algae.lst |
@@ -145,8 +146,28 @@ cat ../info/algae.lst |
                 sed 1d |
                 tsv-select -f 1,2,3,4,5 |
                 sort -gk 3,3 \
-                >> KD/{}.E_sort.KD.tsv
+            >> KD/{}.E_sort.KD.tsv
         done
+    '
+```
+
+### Filter all repeat domains
+
+All domains were filtered according to the following discipline:
+
+If the range of a domain overlapped with another one, the domain with less E-value will be kept.
+
+```bash
+cd ~/data/chlorophyta/DOMAIN
+mkdir UNIQ
+
+cat ../info/algae.lst |
+    parallel -j 16 -k '
+        echo "==> {}"
+        cat KD/{}.E_sort.KD.tsv |
+            perl ../../symbio/scripts/domain_uniq.pl |
+            tsv-select -f 1,4,5,2 \
+        > UNIQ/{}.uniq.KD.tsv
     '
 ```
 
