@@ -171,3 +171,59 @@ cat ../info/algae.lst |
     '
 ```
 
+### Identify TMD via `TMHMM2`
+
+- Extract sequences containing kinase domain
+
+```bash
+cd ~/data/chlorophyta/DOMAIN
+mkdir KD_SEQ
+
+cat ../info/algae.lst |
+    parallel -j 16 -k '
+        echo "==> {}"
+        faops some ../PROTEINS/{}.pep \
+            KD/{}.KD.lst KD_SEQ/{}.KD.fa
+        NUM_KD=$(cat KD/{}.KD.lst | wc -l)
+        NUM_FA=$(faops size KD_SEQ/{}.KD.fa | wc -l)
+        if [[ "$NUM_KD" == "$NUM_FA" ]]; then
+            echo "Extraction complete"
+        else
+            echo "Something wrong"
+            rm KD_SEQ/{}.KD.fa
+        fi
+    '
+```
+
+- Upload file
+
+Upload each PRO.fa to [TMHMM2](https://services.healthtech.dtu.dk/service.php?TMHMM-2.0) for prediction. Results could be recorded into the following files.
+
+```bash
+cd ~/data/chlorophyta/DOMAIN
+mkdir TMD
+
+cat ../info/algae.lst |
+    parallel -j 1 -k '
+        touch TMD/{}.tsv
+    '
+
+dos2unix TMD/*
+
+cat ../info/algae.lst |
+    parallel -j 16 -k '
+        echo "==> {}"
+        perl ../../symbio/scripts/tmhmm_result.pl -i TMD/{}.tsv |
+            tsv-select -f 1,4,2,3 \
+        > TMD/{}.TMD.tsv
+    '
+
+cat ../info/algae.lst |
+    parallel -j 16 -k '
+        echo "==> {}"
+        cat TMD/{}.TMD.tsv |
+            cut -f 1 |
+            tsv-uniq \
+        > TMD/{}.TMD.lst
+    '
+```
