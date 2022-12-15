@@ -167,6 +167,22 @@ cat ../info/algae.lst |
         cat KD/{}.E_sort.KD.tsv |
             perl ../../symbio/scripts/domain_uniq.pl |
             tsv-select -f 1,4,5,2 \
+        > UNIQ/{}.uniq.tsv
+    '
+
+cat ../info/algae.lst |
+    parallel -j 16 -k '
+        echo "==> {}"
+        cat UNIQ/{}.uniq.tsv |
+            tsv-filter --or \
+                --str-eq 4:Pkinase \
+                --str-eq 4:Pkinase_fungal \
+                --str-eq 4:PK_Tyr_Ser-Thr |
+            tsv-select -f 1 |
+            tsv-uniq \
+        > UNIQ/{}.uniq.KD.lst
+        cat UNIQ/{}.uniq.tsv |
+            tsv-join -f UNIQ/{}.uniq.KD.lst -k 1 \
         > UNIQ/{}.uniq.KD.tsv
     '
 ```
@@ -213,8 +229,7 @@ dos2unix TMD/*
 cat ../info/algae.lst |
     parallel -j 16 -k '
         echo "==> {}"
-        perl ../../symbio/scripts/tmhmm_result.pl -i TMD/{}.tsv |
-            tsv-select -f 1,4,2,3 \
+        perl ../../symbio/scripts/tmhmm_result.pl -i TMD/{}.tsv \
         > TMD/{}.TMD.tsv
     '
 
@@ -226,4 +241,40 @@ cat ../info/algae.lst |
             tsv-uniq \
         > TMD/{}.TMD.lst
     '
+```
+
+### Combine results for RLK identification
+
+RLK: N-ECD-TMD-KD-C
+
+```bash
+cd ~/data/chlorophyta/DOMAIN
+mkdir COMBINE
+
+cat ../info/algae.lst |
+    parallel -j 16 -k '
+        echo "==> {}"
+        for acc in $(cat TMD/{}.TMD.lst)
+        do
+            cat TMD/{}.TMD.tsv UNIQ/{}.uniq.KD.tsv |
+                tsv-filter --str-eq 1:${acc} |
+                sort -nk 2,2 \
+            > COMBINE/{}.sort.KD_TMD.tsv
+        done
+    '
+
+cat ../info/algae.lst |
+    parallel -j 16 -k '
+        echo "==> {}"
+        cat COMBINE/{}.sort.KD_TMD.tsv |
+            cut -f 1 |
+            tsv-uniq |
+            wc -l |
+            awk -v spe={} '\''{print spe"\t"$0}'\'' \
+        > ../info/spe_KD.tsv
+    '
+```
+
+```bash
+sudo mount -t drvfs F: /mnt/f
 ```
