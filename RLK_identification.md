@@ -98,6 +98,10 @@ cd ~/data/symbio/info
 
 # manually pick some genomes into taxo_genom.xlsx
 
+bash taxonomy.sh <species_name>
+# taxonomy.sh relied on nwr
+# col2 in taxo_genom.xlsx were acquired from the script
+
 perl ~/Scripts/fig_table/xlsx2csv.pl -f taxo_genom.xlsx |
     tsv-select -d, -f 1 |
     sed 1d |
@@ -105,10 +109,9 @@ perl ~/Scripts/fig_table/xlsx2csv.pl -f taxo_genom.xlsx |
     > genome.lst
 
 wc -l genome.lst
-#148 genome.lst
+#177 genome.lst
+```
 
-# process genomes
-cd ~/data/symbio/GENOMES
 ### Find primary transcripts
 
 Using [getLongestProteinFromGFF.py](https://github.com/MWSchmid/Ngou-et-al.-2022/blob/master/scripts/getLongestProteinFromGFF.py) from Ngou acquiring longest transcripts.
