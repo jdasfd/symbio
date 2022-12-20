@@ -58,16 +58,21 @@ hmmpress Pfam-A.hmm
 
 ```bash
 brew install dos2unix
+brew install wang-q/tap/nwr
+
+cd ~/Scripts
+git clone https://github.com/wang-q/fig_table.git
+
+# script need python2
+sudo apt install python2.7
 ```
 
-## CDS or protein selection
-
-### Genomes selection and CDS renaming
+## Genomes selection and processing
 
 There are something to declare: 
 
-- Multiple transcripts were not excluded here, which means different types of the species transcripts were not specified. Maybe the primary transcripts would be adopted afterwards.
-- All genomes were put into directories named by `species`, then moved into directory `GENOMES`. Every directory basically had four files including genome, gff, cds and pep.
+- Multiple transcripts were not excluded here, which means different types of the species transcripts were not specified.
+- All genomes were put into directories named by their own names of species, then moved into directory `GENOMES`. Most species directory basically had four files including genome, gff, cds and pep (some species).
 - Download directly from URL (no records in database)
   - fagopyrum_esculentum
   - allium_sativum
@@ -80,10 +85,9 @@ There are something to declare:
   - carica_papaya
   - taxus_chinensis
   - sphagnum_fallax
-- Discard
-  - punica_granatum (gff has problem)
-  - picea_abies (ftp cannot be accessed)
-  - phoenix_dactylifera
+  - All algae
+- All inforamation of species is recorded into `info/taxo_genom.xlsx`. Taxonomy (Col2) could be checked through code below.
+
 
 ```bash
 mkdir ~/data/symbio/info
