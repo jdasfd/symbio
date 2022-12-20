@@ -4,6 +4,11 @@
 
 Preparation process were recorded in the [RLK_identification.md](RLK_identification.md). All codes below were just the repeat among more algae data.
 
+```
+# script need python2
+sudo apt install python2.7
+```
+
 ```bash
 mkdir -p ~/data/chlorophyta
 cd ~/data/chlorophyta
@@ -12,8 +17,11 @@ mkdir info PROTEINS
 
 ## Select Chlorophyta proteins
 
+### Genomes
+
 All chlorophyta proteins were selected for covering the largest range of green algae. Some streptophyta proteins also included.
-All proteins were saved into `~/data/chlorophyta/PROTEINS`.
+
+All proteins were saved into `~/data/chlorophyta/GENOMES`.
 
 ```bash
 mkdir -p ~/data/chlorophyta/info
