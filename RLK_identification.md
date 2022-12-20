@@ -88,6 +88,9 @@ There are something to declare:
   - All algae
 - All inforamation of species is recorded into `info/taxo_genom.xlsx`. Taxonomy (Col2) could be checked through code below.
 
+### Collect genomes information
+
+All genomes info were collected into `taxo_genom.xlsx`.
 
 ```bash
 mkdir ~/data/symbio/info
@@ -106,55 +109,83 @@ wc -l genome.lst
 
 # process genomes
 cd ~/data/symbio/GENOMES
+### Find primary transcripts
 
-for dir in $(ls)
-do
-    echo "==>{dir}"
-    faops size ${dir}/genome.cds |
-        cut -f 1 |
-        awk -v spe=${dir} '{print ($0"\t"spe_$0)}' \
-        > tmp
-    faops replace ${dir}/genome.cds tmp ../CDS/${dir}.cds.fa
-    rm tmp
-done
+Using [getLongestProteinFromGFF.py](https://github.com/MWSchmid/Ngou-et-al.-2022/blob/master/scripts/getLongestProteinFromGFF.py) from Ngou acquiring longest transcripts.
 
-# there would have a question: faops size will automatically stop at the first space
-# so some cds files would be named incorrectly
-# check whether changed successfully
+```bash
+mkdir ~/data/symbio/PROTEINS
 cd ~/data/symbio
 
 cat info/genome.lst |
-    parallel -j 6 --keep-order '
-        echo "==>{}"
-        faops size CDS/{}.cds.fa | cut -f 1 | head -n 1
+    parallel -j 16 -k '
+        echo "==> {}"
+        python2.7 scripts/getLongestProteinFromGFF.py \
+            GENOMES/{}/genome.pep GENOMES/{}/genome.gff \
+            PROTEINS/{}.longest.pep
     '
-# manually check those cds done wrong
 
-# manually change those species with problems
-# following is an example for dealing with the `.||.||.` type cds
-cd ~/data/symbio/GENOMES/<species>
-
-# <species> means you should replace to the specific species
-cat genome.cds |
-    perl -nle '
-        print uc $_ if /^[AGCTN]/i;
-        print "><species>_$1" if /^>.+\|(.+?)\|\|-*\d\|\|CDS/;
-    ' \
-    > ../../CDS/<species>.cds.fa 
-
-# finally check the renamed cds numbers
+# check primary results
 cat info/genome.lst |
-    parallel -j 6 --keep-order '
-        echo "==>{}"
-        CDS=$(cat CDS/{}.cds.fa | faops size stdin | wc -l)
-        GEN=$(cat GENOMES/{}/genome.cds | faops size stdin | wc -l)
-        if [[ $CDS == $GEN ]]; then
-            echo check ok
-        else
-            echo check wrong
-        fi
+    parallel -j 16 -k '
+        echo "==> {}"
+        before=$(
+            cat GENOMES/{}/genome.pep |
+            grep "^>" |
+            wc -l
+            )
+        after=$(
+            cat PROTEINS/{}.longest.pep |
+            grep "^>" |
+            wc -l
+        )
+        echo -e "{}\t${before}\t${after}"
     '
-# nothing wrong
+
+# Abnormal results:
+#==> persea_americana
+#persea_americana        24616   1
+#==> lemna_minor
+#lemna_minor     22382   1
+#==> ceratophyllum_demersum
+#ceratophyllum_demersum  25373   1
+
+for genome in persea_americana lemna_minor ceratophyllum_demersum
+do
+    cat GENOMES/${genome}/genome.pep |
+        perl -nle '
+            if($_ =~ /^>/){
+                @name = split /\|\|/, $_;
+                print ">$name[4]";
+            }
+            else{
+                print uc $_;
+            }
+        ' \
+        > GENOMES/${genome}/genome.rename.pep
+done
+
+for genome in persea_americana lemna_minor ceratophyllum_demersum
+do
+    python2.7 scripts/getLongestProteinFromGFF.py \
+        GENOMES/${genome}/genome.rename.pep \
+        GENOMES/${genome}/genome.gff \
+        PROTEINS/${genome}.longest.pep
+done
+
+# ceratophyllum_demersum has six box translation
+# all gene_id recorded in info/rm_ceratophyllum_demersum.lst
+# rm them
+faops some PROTEINS/ceratophyllum_demersum.longest.pep \
+    <(cat PROTEINS/ceratophyllum_demersum.longest.pep |
+        faops size stdin |
+        cut -f 1 |
+        tsv-join -f info/rm_ceratophyllum_demersum.lst -k 1 -e
+    ) tmp && mv tmp PROTEINS/ceratophyllum_demersum.longest.pep
+
+ls PROTEINS | wc -l
+#177
+# All primary transcripts were successfully extracted
 ```
 
 ### Protein processing
