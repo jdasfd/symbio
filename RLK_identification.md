@@ -193,90 +193,47 @@ ls PROTEINS | wc -l
 
 ### Protein processing
 
-CDS always failed in grouping orthogroups correctly, so I chose protein files.
+Add taxonomy and species name before all proteins and make them satisfying the next step.
 
 ```bash
-mkdir ~/data/symbio/PROTEIN
 cd ~/data/symbio
 
-cat info/genome.lst |
-    parallel -j 6 --keep-order '
-        if [ ! -f GENOMES/{}/genome.pep ]; then
-            echo "==>{} without protein"
-        else
-            cp GENOMES/{}/genome.pep PROTEIN/{}.pep.fa
-        fi
-    '
-# remove all species without pro seq in the genome.lst
-
-conda activate genome
-
-for file in $(ls PROTEIN)
-do
-    echo "==> ${file}"
-    python /home/j/anaconda3/envs/genome/bin/primary_transcript.py PROTEIN/${file}
-    echo
-done
-
-cd PROTEIN
-ls primary_transcripts | wc -l
-#148
-
-mv primary_transcripts/ ..
-cd ..
-
-# make sure which file should change seq_id
-# check seq_id could not be change
-for file in $(ls primary_transcripts)
-do
-    id=$(cat primary_transcripts/${file} | grep '^>' | head -n 1)
-    result=$(echo $id | grep '\s')
-    if [[ $result != "" ]]; then
-        echo "==>${file} name should change"
-        echo $id
-        echo
-    fi
-done
-#persea_americana
-#lemna_minor
-#ceratophyllum_demersum
-#cat primary_transcripts/<species>.pep.fa |
-#    perl -nle '
-#        print ">$1" if /^>.+?\|\|.+?\|\|.+?\|\|.+?\|\|(.+?)\|/;
-#        print if /^[A-Z]/i;
-#    ' > tmp && mv tmp primary_transcripts/<species>.pep.fa
-
-for file in $(ls primary_transcripts)
-do
-    id=$(cat primary_transcripts/${file} | grep '^>' | head -n 1)
-    result=$(echo $id | grep '\s')
-    if [[ $result != "" ]]; then    
-        cat primary_transcripts/${file} | perl -nle '
-            print ">$1" if /^>(.+?)\s/;
-            print if /^[A-Z]/i;
-        ' \
-        > tmp && mv tmp primary_transcripts/${file}
-    fi
-done
-# run above code for sure again
+perl ~/Scripts/fig_table/xlsx2csv.pl -f info/taxo_genom.xlsx |
+    tsv-select -d ',' -f 1,3 |
+    sed 1d |
+    perl -nla -F',' -e '
+        $F[0] =~ s/.*/\L$&/g;
+        print "CL_$F[0]" if $F[1] =~ /^Chloro/;
+        print "CA_$F[0]" if $F[1] =~ /^Charo/;
+        print "BR_$F[0]" if $F[1] =~ /^Bryo/;
+        print "LY_$F[0]" if $F[1] =~ /^Lyco/;
+        print "FE_$F[0]" if $F[1] =~ /^Fern/;
+        print "GY_$F[0]" if $F[1] =~ /^Gymno/;
+        print "AN_$F[0]" if $F[1] =~ /^Angio/;
+    ' \
+    > info/name.lst
 
 # add species name before the id
-for name in $(ls primary_transcripts | perl -p -e 's/\..+$//')
-do
-    faops size primary_transcripts/${name}.pep.fa |
-        cut -f 1 |
-        awk -v name=${name} '{print ($0"\t"name"_"$0)}' \
-        > name.tmp
-    faops replace primary_transcripts/${name}.pep.fa name.tmp tmp.fa \
-    && mv tmp.fa primary_transcripts/${name}.pep.fa
-done
+cat info/genome.lst |
+    parallel -j 16 -k '
+        new_name=$(cat info/name.lst | grep "{}")
+        faops size PROTEINS/{}.longest.pep |
+            cut -f 1 |
+            awk -v name=${new_name} '\''{print ($0"\t"name"_"$0)}'\'' \
+            > PROTEINS/{}.name.tmp
+        faops replace PROTEINS/{}.longest.pep \
+            PROTEINS/{}.name.tmp \
+            PROTEINS/{}.tmp.fa \
+            && mv PROTEINS/{}.tmp.fa PROTEINS/{}.longest.pep
+        rm PROTEINS/{}.name.tmp
+    '
 
 # some protein files using . for termination codon
 # change them to * for satisfying diamond
-for file in $(ls primary_transcripts)
+for file in $(ls PROTEINS)
 do
-    SEQ=$(faops some -l 0 primary_transcripts/${file} \
-            <(faops size primary_transcripts/${file}) \
+    SEQ=$(faops some -l 0 PROTEINS/${file} \
+            <(faops size PROTEINS/${file}) \
             stdout | grep -v '^>')
     result=$(echo $SEQ | grep '\.')
     if [[ $result != "" ]]; then
@@ -285,16 +242,26 @@ do
 done
 
 # manually change them
-for file in $(ls primary_transcripts)
-do
-    cat primary_transcripts/${file} |
-        perl -nle 'if(/^>/){print;}else{$_ =~ s/\./\*/g; print $_;}' > tmp \
-        && mv tmp primary_transcripts/${file}
-done
+cat info/genome.lst |
+    parallel -j 16 -k '
+        echo "==> {}"
+        cat PROTEINS/{}.longest.pep |
+            perl -nle '\''
+                if (/^>/){
+                    print;
+                }
+                else{
+                    $_ =~ s/\./\*/g;
+                    print $_;
+                }
+            '\'' > PROTEINS/{}.tmp \
+                && mv PROTEINS/{}.tmp PROTEINS/{}.longest.pep
+    '
+
 # run above code for sure again
 
 # upload to the workstation
-rsync -avP primary_transcripts/ name@ip:jyq/data/symbio/
+rsync -avP PROTEINS name@ip:jyq/data/symbio/
 ```
 
 ## BUSCO
@@ -314,32 +281,23 @@ bash scripts/busco.sh
 ### OrthoFinder processing
 
 ```bash
-# do following to transmit data to server
-#rsync -avP /home/j/data/symbio/CDS name@ip:jyq/data/
-
-# connect to server
-# ssh name@ip
-
-cd ~/jyq/data/symbio
+cd ~/data/symbio
 
 # orthofinder in conda base env
 conda activate
 
-orthofinder -f ./primary_transcripts -og
+orthofinder -f ./PROTEINS -og
 # orthofinder [options] -f <dir>
 # -og: Stop after inferring orthogroups
 
-# cp results to local
-#rsync -avP name@ip:jyq/data/symbio/primary_transcripts/OrthoFinder/Results_Oct20/Orthogroups ~/data/symbio/
-
 # If hard limit, h > r already, then you just need to increase the soft limit:
-ulimit -n 22004
+#ulimit -n 22004
 
 # check the limit
-ulimit -Sn
+#ulimit -Sn
 
 # continue after orthogroups inferred
-orthofinder -fg Results_Oct20/ -M msa -X
+#orthofinder -fg Results_Oct20/ -M msa -X
 # -fg <dir>: Start OrthoFinder from pre-computed orthogroups in <dir>
 # -M <txt>: Method for gene tree inference. Options 'dendroblast' & 'msa' [Default = dendroblast]
 # -X: Don't add species names to sequence IDs
