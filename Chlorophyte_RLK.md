@@ -27,13 +27,33 @@ All proteins were saved into `~/data/chlorophyta/GENOMES`.
 mkdir -p ~/data/chlorophyta/info
 cd ~/data/chlorophyta
 
-ls PROTEINS |
-    sed 's/\.pep$//' \
-    > info/algae.lst
+ls GENOMES > info/algae.lst
 
 
 cat info/algae.lst | wc -l
 #31
+```
+
+### Extract longest transcripts
+
+```bash
+cd ~/data/chlorophyta
+mkdir PROTEINS
+
+cat info/algae.lst |
+    parallel -j 16 -k '
+        echo "==> {}"
+        python2.7 scripts/getLongestProteinFromGFF.py \
+            GENOMES/{}/genome.pep GENOMES/{}/genome.gff \
+            PROTEINS/{}.pep
+    '
+```
+
+### Rename all protein files
+
+```bash
+cd ~/data/chlorophyta
+
 ```
 
 ## Identify RLK
@@ -285,4 +305,5 @@ cat ../info/algae.lst |
 
 ```bash
 sudo mount -t drvfs F: /mnt/f
+ln -s /mnt/f/data/ ~/data
 ```
