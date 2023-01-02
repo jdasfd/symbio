@@ -303,12 +303,6 @@ orthofinder -f ./PROTEINS -og
 
 ### OrthoFinder results
 
-Acquire results from the workstation using rsync and put in the dir `Orthogroups` (command not shown).
-
-In Ceratophyllum demersum, there are proteins acquired from six box translation, which means that suspect repeat proteins should be removed from the results.
-
-All protein names were recorded into a file named `info/rm_ceratophyllum_demersum.lst`.
-
 ```bash
 cd ~/data/symbio/Orthogroups
 mkdir groups
@@ -350,50 +344,6 @@ dos2unix Orthogroups.GeneCount.tsv
 cat Orthogroups.GeneCount.tsv |
     tsv-select -H -f Orthogroup,Total \
     > ortho_gene.tsv
-```
-
-### Renaming and extracting
-
-After OrthoFinder processing, those pep files contained `:` in their seq_ids will be converted to `_`. Protein extraction will fail if you do not change your seq_ids.
-
-```bash
-cd ~/data/symbio
-
-rm info/rename_id.lst
-# check those files whose seq_ids should be changed
-for file in $(ls primary_transcripts)
-do
-    if grep -i -q ':' primary_transcripts/${file}; then
-        echo "${file}" >> info/rename_id.lst
-    fi
-done
-#anthoceros_angustus.pep.fa
-#bonia_amplexicaulis.pep.fa
-#calamus_simplicifolius.pep.fa
-#cocos_nucifera.pep.fa
-#daemonorops_jenkinsiana.pep.fa
-#mesotaenium_endlicherianum.pep.fa
-#olyra_latifolia.pep.fa
-#phalaenopsis_equestris.pep.fa
-#phyllostachys_edulis.pep.fa
-#rhododendron_delavayi.pep.fa
-#welwitschia_mirabilis.pep.fa
-
-for file in $(cat info/rename_id.lst)
-do
-    cat primary_transcripts/${file} |
-        perl -p -e 's/:/_/g' \
-        > tmp && mv tmp primary_transcripts/${file}
-done
-
-# run again to check whether renaming succeed
-for file in $(ls primary_transcripts)
-do
-    if grep -i -q ':' primary_transcripts/${file}; then
-        echo "${file}"
-    fi
-done
-# OK
 ```
 
 ### Count the length and the number of proteins
