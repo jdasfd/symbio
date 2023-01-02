@@ -290,17 +290,15 @@ orthofinder -f ./PROTEINS -og
 # orthofinder [options] -f <dir>
 # -og: Stop after inferring orthogroups
 
-# If hard limit, h > r already, then you just need to increase the soft limit:
-#ulimit -n 22004
-
-# check the limit
-#ulimit -Sn
-
 # continue after orthogroups inferred
 #orthofinder -fg Results_Oct20/ -M msa -X
 # -fg <dir>: Start OrthoFinder from pre-computed orthogroups in <dir>
 # -M <txt>: Method for gene tree inference. Options 'dendroblast' & 'msa' [Default = dendroblast]
 # -X: Don't add species names to sequence IDs
+
+# orthofinder will make a working directory under the -f, which is named by the date
+#cp -r ./PROTEINS/OrthoFinder/Results_Dec22/Orthogroups ./
+#rsync -avP name@ip:jyq/data/symbio/Orthogroups ~/data/symbio/
 ```
 
 ### OrthoFinder results
@@ -318,40 +316,34 @@ mkdir groups
 cat Orthogroups.tsv | cut -f 1 | sed 1d > ortho.lst
 
 wc -l ortho.lst
-#135923 ortho.lst
-# Totally 135923 orthogroups were identified
+#150270 ortho.lst
+# Totally 150270 orthogroups were identified
 
 # split each orthogroup into a tsv
 cat ortho.lst |
-    parallel -j 4 --keep-order '
+    parallel -j 12 --keep-order '
         echo "==> {}"
         bash ../scripts/ortho_extract.sh {} ./groups/
     '
 
-# here considering tsv-join for orthogroups identification
-for ortho in $(cat ortho.lst)
-do
-    echo "==> ${ortho}"
-    cat groups/${ortho}.csv |
-        mlr --icsv --otsv cat |
-        cut -f 2 |
-        sed 1d |
-        tr ',' '\n' |
-        sed 's/^\s//' |
-        sed '/^$/d' |
-        awk -v ortho=${ortho} '{print ($0"\t"ortho)}' \
-        >> group/all_pro_ortho.tsv
-done
+# combine groups .tsv files into one
+# col1: ortho_name, col2: prot_name
+cat ortho.lst |
+    parallel -j 1 -k '
+        echo "==> {}"
+        cat groups/{}.csv |
+            mlr --icsv --otsv cat |
+            cut -f 2 |
+            sed 1d |
+            tr "," "\n" |
+            sed '\''s/^\s//'\'' |
+            sed '\''/^$/d'\'' |
+            awk -v ortho={} '\''{print ($0"\t"ortho)}'\'' \
+            >> all_pro_ortho.tsv
+    '
 
-cat all_pro_ortho.tsv | wc -l
-#5005513
-
-cat all_pro_ortho.tsv |
-    tsv-join -f ../info/rm_ceratophyllum_demersum.lst -k 1 -e -z \
-    > tmp && mv tmp all_pro_ortho.tsv
-
-cat all_pro_ortho.tsv | wc -l
-#5005513
+wc -l all_pro_ortho.tsv
+#5304420 all_pro_ortho.tsv
 
 dos2unix Orthogroups.GeneCount.tsv
 
