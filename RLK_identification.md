@@ -468,15 +468,16 @@ ls DOMAIN/protein/*.no_hmm.lst |
 #5800767
 ```
 
-### Extract kinase domain
+### Extract pkinase domain
 
-All KDs were extracted according to `--iregex Domain:pk`, which means that other domains contained `pk` would also be included.
+- Kinase domains identification
+ 
+RLK domains identification process was referred to the [article](https://www.nature.com/articles/s41477-022-01260-5). The kinase domain was identified as PFAM [PF00069](https://www.ebi.ac.uk/interpro/entry/pfam/PF00069/) named Protein kinase domain (short name *Pkinase*).
 
-E-value cutoff <= 1e-4 for KDs - kinase domains are relatively more conserved than ECD.
+Therefore, all domains contained `pk` were collected here. This step was to determine whether there were other kinase domains named not pkinase. The reason why doing this here is that we use `hmmscan` for domains scanning across the whole protein sequences by `PFAM-A` database. So double check them.
 
 ```bash
 cd ~/data/symbio/DOMAIN
-mkdir -p ~/data/symbio/DOMAIN/KD
 
 rm all_domains.tsv
 # all domains were extracted
@@ -499,74 +500,101 @@ cat all_domains.tsv | wc -l
 # all domains identified, including those domains scanned repeatedly from a location
 # this will be considered later
 
-# extract all domains contained pk with cutoff E-value <= 1e-4
-# other domains would be included no matter E-value
-cat species.lst |
-    parallel -j 12 --keep-order '
+# extract all domains contained pk with cutoff E-value <= 1e-5
+rm all_pk.tsv
+for species in $(cat ../info/genome.lst)
+do
+    echo "==> ${species}"
+    cat pfam/${species}.pfam.tsv |
+        tsv-filter -H --or \
+            --iregex Domain:pk \
+            --iregex Domain:kinase |
+        tsv-filter -H --le E_value:"1e-5" |
+        sed 1d |
+        tsv-select -f 2 \
+    >> all_pk.tsv
+done
+
+cat all_pk.tsv |
+    tsv-summarize -g 1 --count |
+    sort -r -nk 2,2 \
+    > tmp && mv tmp all_pk.tsv
+```
+
+True pkinase domain were kept after searching on [InterPro](https://www.ebi.ac.uk/interpro/)
+
+- True pkinase domains
+  - Pkinase
+  - PK_Tyr_Ser-Thr
+  - Pkinase_fungal
+  - Pkinase_C
+
+E-value cutoff <= 1e-5 for all KDs (pkinase domain) - kinase domains are relatively more conserved than ECD.
+
+```bash
+cd ~/data/symbio/DOMAIN
+mkdir -p ~/data/symbio/DOMAIN/KD
+
+# extract all domains contained pk with cutoff E-value <= 1e-5
+cat ../info/genome.lst |
+    parallel -j 12 -k '
         echo "==> {}"
         cat pfam/{}.pfam.tsv |
-            tsv-filter -H --iregex Domain:pk --le E_value:"1e-4" |
+            tsv-filter -H --or \
+                --str-eq Domain:Pkinase \
+                --str-eq Domain:Pkinase_fungal \
+                --str-eq Domain:PK_Tyr_Ser-Thr \
+                --str-eq Domain:Pkinase_C |
+            tsv-filter -H --le E_value:"1e-5" |
             sed 1d |
             tsv-select -f 1 |
             tsv-uniq \
             > KD/{}.lst
         cat pfam/{}.pfam.tsv |
             sed 1d |
-            tsv-join -f KD/{/}.lst -k 1 |
+            tsv-join -f KD/{}.lst -k 1 |
             tsv-select -f 1,2,4,5,3 \
             > KD/{}.tsv
-        rm KD/{}.lst
     '
 
-rm all_KD.tsv
-for file in $(ls KD/*.tsv)
+wc -l ./KD/*.lst | grep 'total'
+# 194150 total
+
+rm all_true_KD.tsv
+for species in $(cat ../info/genome.lst)
 do
-    cat ${file} |
-        tsv-select -f 2 |
-        tsv-filter --iregex 1:pk \
-        >> all_KD.tsv
+    echo "==> ${species}"
+    cat KD/${species}.tsv |
+        tsv-filter --or \
+            --str-eq 2:Pkinase \
+            --str-eq 2:Pkinase_fungal \
+            --str-eq 2:PK_Tyr_Ser-Thr \
+            --str-eq 2:Pkinase_C |
+        tsv-filter -H --le 5:"1e-5" |
+        tsv-select -f 2 \
+    >> all_true_KD.tsv
 done
 
-cat all_KD.tsv |
+cat all_true_KD.tsv |
     tsv-summarize -g 1 --count |
     sort -r -nk 2,2 \
-    > tmp && mv tmp all_KD.tsv
-
-rm all_KD_species.tsv
-# all proteins with the pk domain among species
-ls KD/*.tsv |
-    parallel -j 12 --keep-order '
-        cat {} |
-            cut -f 1 |
-            tsv-uniq |
-            wc -l |
-            awk -v spe={/.} '\''{print (spe"\t"$0)}'\'' \
-            >> all_KD_species.tsv
-    '
-
-# all proteins
-cat all_KD_species.tsv |
-    cut -f 2 |
-    tr '\n' '+' |
-    sed 's/+$/\n/' |
-    bc
-#204137
+    > tmp && mv tmp all_true_KD.tsv
 
 # extract all protein sequences contained pk
 mkdir -p ~/data/symbio/DOMAIN/seq_KD
 
-ls KD/*.tsv |
-    parallel -j 12 --keep-order '
-        echo "==> {/.}"
+cat ../info/genome.lst |
+    parallel -j 12 -k '
+        echo "==> {}"
         faops some -l 0 \
-            ../primary_transcripts/{/.}.pep.fa \
-            <(cat {} | cut -f 1 | tsv-uniq) \
-            ./seq_KD/{/.}.fa
+            ../PROTEINS/{}.longest.pep \
+            KD/{}.lst \
+            seq_KD/{}.fa
     '
 
 # check extraction
 wc -l ./seq_KD/*.fa | grep 'total' | perl -p -e 's/\s+(\d+).+$/$1\/2/' | bc
-#204137
+#194150
 # extraction complete
 ```
 
@@ -578,35 +606,34 @@ Although `selenium` could deal with this automatically, but there are always pro
 
 ```bash
 cd ~/data/symbio/DOMAIN
+mkdir -p TMD
 
-mkdir -p TMD COMBINE
-
-cat species.lst |
-    parallel -j 12 --keep-order '
+cat ../info/genome.lst |
+    parallel -j 12 -k '
         touch TMD/{}.tsv
     '
 # manually doing this steps:
 # upload pep.fa of each specie acquired from the previous step to TMHMM 2.0 websites
 # copy all predicted results into a tsv named by species
-# tsv-utils could only deal with those files in unix style (LF), convert them using dos2unix
 
+# tsv-utils could only deal with those files in unix style (LF), convert them using dos2unix
 dos2unix TMD/*.tsv
 
 wc -l TMD/* | grep 'total'
-#  204137 total
+#  194150 total
 # alright
 
 # retrieved potential pk proteins if they had at least a TMD
-cat species.lst |
-    parallel -j 12 --keep-order '
+cat ../info/genome.lst |
+    parallel -j 12 -k '
         echo "==> {}"
         perl ../scripts/tmhmm_result.pl -i TMD/{}.tsv |
             tsv-select -f 1,4,2,3 \
             > TMD/{}.TMD.tsv
         '
 
-cat species.lst |
-    parallel -j 12 --keep-order '
+cat ../info/genome.lst |
+    parallel -j 12 -k '
         echo "==> {}"
         cat TMD/{}.tsv |
             cut -f 1 |
