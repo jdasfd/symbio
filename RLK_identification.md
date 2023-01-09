@@ -386,18 +386,21 @@ So domains should be formatted correctly for a true RLK.
 
 ```bash
 cd ~/data/symbio
-mkdir -p ~/data/symbio/DOMAIN/pfam
+mkdir -p DOMAIN/pfam
 
 cat info/genome.lst |
-    parallel -j 6 --keep-order '
+    parallel -j 10 -k '
         echo {}
         hmmscan --cpu 2 -E 0.1 --domE 0.1 -o DOMAIN/pfam/{}.txt \
-            ./HMM/PFAM/Pfam-A.hmm primary_transcripts/{}.pep.fa
+            ./HMM/PFAM/Pfam-A.hmm PROTEINS/{}.longest.pep
     '
 
-# all query sequences
+ls DOMAIN/pfam/*.txt | wc -l
+#177
+
+# the number of all query sequences
 ls DOMAIN/pfam/*.txt |
-    parallel -j 12 --keep-order '
+    parallel -j 12 -k '
         cat {} |
             grep -v '^#' |
             grep '^Query' |
@@ -407,46 +410,50 @@ ls DOMAIN/pfam/*.txt |
     tr '\n' '+' |
     sed 's/+$/\n/' |
     bc
-#5431298
+#5747688
 
 ls DOMAIN/pfam/*.txt |
-    parallel -j 12 --keep-order '
+    parallel -j 12 -k '
         echo "==> {/.}"
         perl scripts/hmm_results.pl -i {} \
         > DOMAIN/pfam/{/.}.pfam.tsv
     '
 # screen will show this command:
 #Missed this line:    [No individual domains that satisfy reporting thresholds (although complete target did)]
-
-ls DOMAIN/pfam/*.txt |
-    parallel -j 12 --keep-order 'echo {/.}' \
-    > DOMAIN/species.lst
+# It means that those domains could not be identified among proteins
 
 # check whether pfam results contained all proteins
 ls DOMAIN/pfam/*.pfam.tsv |
-    parallel -j 12 --keep-order '
+    parallel -j 12 --k '
         cat {} |
             tsv-select -H -f QUERY |
+            sed 1d |
             tsv-uniq |
             wc -l
     ' |
     tr '\n' '+' |
     sed 's/+$/\n/' |
     bc
-#4237222
+#4468845
 
 # Results without domains
-ls PROTEIN/*.length.tsv |
+ls DOMAIN/protein/*.length.tsv |
     sed 's/\.length\.tsv$//' |
-    parallel -j 12 --keep-order '
+    parallel -j 12 -k '
         echo "==>{/}"
         cat {}.length.tsv |
-            tsv-join -f DOMAIN/pfam/{/}.pfam.tsv -k 1 -e \
-            > PROTEIN/{/}.no_hmm.tsv
+            tsv-join -f <(
+                cat DOMAIN/pfam/{/}.pfam.tsv |
+                    sed 1d |
+                    cut -f 1
+                ) \
+                -k 1 -e \
+            > DOMAIN/protein/{/}.no_hmm.lst
     '
 
-ls PROTEIN/*.no_hmm.tsv |
-    parallel -j 12 --keep-order '
+# The number of all proteins without domains scanned
+ls DOMAIN/protein/*.no_hmm.lst |
+    parallel -j 12 -k '
         cat {} |
             tsv-select -f 1 |
             tsv-uniq |
@@ -455,7 +462,10 @@ ls PROTEIN/*.no_hmm.tsv |
     tr '\n' '+' |
     sed 's/+$/\n/' |
     bc
-#1207627
+#1331922
+
+# echo 4468845+1331922 | bc
+#5800767
 ```
 
 ### Extract kinase domain
