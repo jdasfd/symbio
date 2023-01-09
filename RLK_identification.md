@@ -353,34 +353,25 @@ cat ortho_gene.tsv | tsv-summarize -H --sum Total | sed 1d
 
 ### Count the length and the number of proteins
 
+There are few things to be declared:
+
+- Length
+
 ```bash
 cd ~/data/symbio
-mkdir PROTEIN
+mkdir -p DOMAIN/protein
 
 # all proteins' length
-ls primary_transcripts/*.pep.fa |
-    sed 's/\.pep\.fa$//' |
-    parallel -j 12 --keep-order '
+ls PROTEINS/*.longest.pep |
+    sed 's/\.longest\.pep$//' |
+    parallel -j 12 -k '
         echo "==> {/}"
-        faops size {}.pep.fa > PROTEIN/{/}.length.tsv
+        faops size {}.longest.pep \
+        > DOMAIN/protein/{/}.length.tsv
     '
 
-cat PROTEIN/*.length.tsv | wc -l
-#5444701
-
-rm PROTEIN/all_pro_spe.name.tsv
-ls PROTEIN/*.length.tsv |
-    sed -s 's/\.length\.tsv$//' |
-    parallel -j 1 --keep-order '
-        echo "==> {/}"
-        cat {}.length.tsv |
-            cut -f 1 |
-            awk -v spe={/} '\''{print ($0"\t"spe)}'\'' \
-            >> PROTEIN/all_pro_spe.name.tsv
-    '
-
-cat PROTEIN/all_pro_spe.name.tsv | wc -l
-#5444701
+cat DOMAIN/protein/*.length.tsv | wc -l
+#5800767
 ```
 
 ## Identify RLK
