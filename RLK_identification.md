@@ -738,70 +738,84 @@ cat all_uniq_KD.tsv |
 # these are all pkinase unrepeated domains
 ```
 
-### Pick pkinase domains only
 
-All domains contained `pk` were collected. But RLK only contains the pkinase domain.
+### Extract all potential RLK
 
-Those domains in `all_KD_uniq.tsv` were checked through [InterPro](https://www.ebi.ac.uk/interpro/), and true pkinase domain were kept.
-
-- Pkinase
-- PK_Tyr_Ser-Thr
-- Pkinase_fungal
+After sorted by col3 (start pos), a script named `domain_order.pl` could just judge whether TMD showed before KD.
 
 ```bash
 cd ~/data/symbio/DOMAIN
 mkdir -p RLK
 
-# all pkinase protein names
-cat species.lst |
-    parallel -j 12 --keep-order '
-        cat UNIQ/{}.sort_uniq.tsv |
-            tsv-filter --or --str-eq 4:Pkinase \
-                --str-eq 4:Pkinase_fungal \
-                --str-eq 4:PK_Tyr_Ser-Thr |
-            cut -f 1 |
-            tsv-uniq \
-            > RLK/{}.RLK.lst
-    '
-
-# all RLK that truly contained the pkinase domain
-cat species.lst |
-    parallel -j 12 --keep-order '
+# sort with the domain start pos
+cat ../info/genome.lst |
+    parallel -j 12 -k '
         echo "==> {}"
-        cat UNIQ/{}.sort_uniq.tsv |
-            tsv-join -f RLK/{}.RLK.lst -k 1 \
-            > RLK/{}.RLK.tsv
-    '
-
-echo -e "species\tRLK_num" > all_RLK_species.tsv
-cat species.lst |
-    parallel -j 12 --keep-order '
-        echo "==> {}"
-        cat RLK/{}.RLK.tsv |
+        cat KD/{}.tsv |
+            tsv-select -f 1,2,3,4 \
+            > COMBINE/{}.tsv
+        cat TMD/{}.TMD.tsv \
+            >> COMBINE/{}.tsv
+        cat COMBINE/{}.tsv |
             tsv-select -f 1 |
             tsv-uniq |
-            wc -l |
-            awk -v spe={} '\''{print (spe"\t"$0)}'\'' \
-            >> all_RLK_species.tsv
+            tsv-sort > COMBINE/{}.tmp.lst
+        if [ -f COMBINE/{}.sort.tsv ]; then
+            rm COMBINE/{}.sort.tsv
+        fi
+        for acc in $(cat COMBINE/{}.tmp.lst)
+        do
+            cat COMBINE/{}.tsv |
+                tsv-filter --str-eq 1:${acc} |
+                tsv-sort -nk 3,3 \
+                >> COMBINE/{}.sort.tsv
+        done
+        rm COMBINE/{}.tmp.lst
     '
 
-cat all_PK_species.tsv |
-    tsv-join -H -f all_RLK_species.tsv -k species -a RLK_num \
-    > all_count_species.tsv
+# count for every specie
+rm all_PK_pot_species.tsv
+cat species.lst |
+    parallel -j 12 -k '
+        echo "==> {}"
+        cat COMBINE/{}.sort.tsv |
+            cut -f 1 |
+            uniq |
+            wc -l |
+            awk -v spe={} '\''{print (spe"\t"$0)}'\'' \
+            >> all_PK_pot_species.tsv
+    '
 
-perl ~/Scripts/fig_table/xlsx2csv.pl -f ../info/taxo_genom.xlsx |
-    mlr --icsv --otsv cat |
-    tsv-select -H -f SpeciesName,ComName |
-    sed 1d |
-    perl -nle 'print lc $_;' |
-    sed '1ispecies\ttaxo' \
-    > taxonomy.tsv
+# filter according to RLK structure
+# that is TMD appeared before KD
+cat ../info/genome.lst |
+    parallel -j 12 -k '
+        echo "==> {}"
+        cat UNIQ/{}.sort_start.tsv |
+            perl ../scripts/domain_order.pl \
+            > RLK/{}.RLK.lst
+        '
 
-cat taxonomy.tsv |
-    tsv-join -H -f all_count_species.tsv \
-        -k species -a pot_PK,true_PK,RLK_num \
-    > Species_result.tsv
+rm all_PK_true_species.tsv
+cat species.lst |
+    parallel -j 12 -k '
+        echo "==> {}"
+        cat COMBINE/{}.PK.lst |
+            wc -l |
+            awk -v spe={} '\''{print (spe"\t"$0)}'\'' \
+            >> all_PK_true_species.tsv
+    '
+
+# combine two files
+cat all_PK_pot_species.tsv |
+    tsv-join -f all_PK_true_species.tsv -k 1 -a 2 |
+    tsv-sort -k 1,1 |
+    sed '1ispecies\tpot_PK\ttrue_PK' \
+    > all_PK_species.tsv
+
+rm all_PK_*_species.tsv
 ```
+
 
 ### Count all ECDs
 
@@ -918,7 +932,7 @@ OG0010386
 cd ~/data/symbio/RLK
 
 cat ortho.lst |
-    parallel -j 1 --keep-order '
+    parallel -j 1 -k '
         cat ../Orthogroups/all_pro_ortho.tsv |
             tsv-filter --str-eq 2:{} |
             cut -f 1 |
