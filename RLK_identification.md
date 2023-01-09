@@ -643,83 +643,6 @@ cat ../info/genome.lst |
     '
 ```
 
-### Extract all potential RLK
-
-All proteins with characteristic that TMD appeared before KD (from N-terminal to C-terminal, sorted by start) were treated as potential targets of RLK.
-
-After sorted by col3 (start pos), a script named `domain_order.pl` could just judge whether TMD showed before KD.
-
-```bash
-# Combine pfam results with TMD
-# sort with the domain start pos
-cat species.lst |
-    parallel -j 12 --keep-order '
-        echo "==> {}"
-        cat KD/{}.tsv |
-            tsv-select -f 1,2,3,4 \
-            > COMBINE/{}.tsv
-        cat TMD/{}.TMD.tsv \
-            >> COMBINE/{}.tsv
-        cat COMBINE/{}.tsv |
-            tsv-select -f 1 |
-            tsv-uniq |
-            tsv-sort > COMBINE/{}.tmp.lst
-        if [ -f COMBINE/{}.sort.tsv ]; then
-            rm COMBINE/{}.sort.tsv
-        fi
-        for acc in $(cat COMBINE/{}.tmp.lst)
-        do
-            cat COMBINE/{}.tsv |
-                tsv-filter --str-eq 1:${acc} |
-                tsv-sort -nk 3,3 \
-                >> COMBINE/{}.sort.tsv
-        done
-        rm COMBINE/{}.tmp.lst
-    '
-
-# count for every specie
-rm all_PK_pot_species.tsv
-cat species.lst |
-    parallel -j 12 --keep-order '
-        echo "==> {}"
-        cat COMBINE/{}.sort.tsv |
-            cut -f 1 |
-            uniq |
-            wc -l |
-            awk -v spe={} '\''{print (spe"\t"$0)}'\'' \
-            >> all_PK_pot_species.tsv
-    '
-
-# filter according to RLK structure
-# that is TMD appeared before KD
-cat species.lst |
-    parallel -j 12 --keep-order '
-        echo "==> {}"
-        cat COMBINE/{}.sort.tsv |
-            perl ../scripts/domain_order.pl \
-            > COMBINE/{}.PK.lst
-        '
-
-rm all_PK_true_species.tsv
-cat species.lst |
-    parallel -j 12 --keep-order '
-        echo "==> {}"
-        cat COMBINE/{}.PK.lst |
-            wc -l |
-            awk -v spe={} '\''{print (spe"\t"$0)}'\'' \
-            >> all_PK_true_species.tsv
-    '
-
-# combine two files
-cat all_PK_pot_species.tsv |
-    tsv-join -f all_PK_true_species.tsv -k 1 -a 2 |
-    tsv-sort -k 1,1 |
-    sed '1ispecies\tpot_PK\ttrue_PK' \
-    > all_PK_species.tsv
-
-rm all_PK_*_species.tsv
-```
-
 ### Remove repeated domains
 
 Because of redundant results acquired from `hmmscan` (using PFAM-A database with cutoff E-value 1e-1), a process should be adopted for reducing repeated domains.
@@ -733,38 +656,39 @@ cd ~/data/symbio/DOMAIN
 mkdir -p UNIQ
 
 # sort according to E_value from less to more
-cat species.lst |
-    parallel -j 12 --keep-order '
+cat ../info/genome.lst |
+    parallel -j 12 -k '
         echo "==> {}"
         if [ -f UNIQ/{}.sort.tsv ]; then
             rm UNIQ/{}.sort.tsv
         fi
-        for acc in $(cat COMBINE/{}.PK.lst)
+        for acc in $(cat KD/{}.lst)
         do
             cat pfam/{}.pfam.tsv |
                 tsv-filter -H --str-eq QUERY:${acc} |
                 sed 1d |
                 tsv-select -f 1,2,3,4,5 |
                 sort -gk 3,3 \
-                >> UNIQ/{}.sort.tsv
+                >> UNIQ/{}.sort_e.tsv
         done
     '
 # sort -g: use generic numerical value
 
-cat species.lst |
-    parallel -j 12 --keep-order '
+# a script called domain_uniq to remove repeated domains
+cat ../info/genome.lst |
+    parallel -j 12 -k '
         echo "==> {}"
-        cat UNIQ/{}.sort.tsv |
+        cat UNIQ/{}.sort_e.tsv |
             perl ../scripts/domain_uniq.pl |
             tsv-select -f 1,4,5,2 \
             > UNIQ/{}.uniq.tsv
     '
 
 # combine TMD to uniq.tsv
-cat species.lst |
+cat ../info/genome.lst |
     parallel -j 12 -keep-order '
         echo "==> {}"
-        for acc in $(cat COMBINE/{}.PK.lst)
+        for acc in $(cat KD/{}.lst)
         do
             cat TMD/{}.TMD.tsv |
                 tsv-filter --str-eq 1:${acc} |
@@ -773,40 +697,45 @@ cat species.lst |
         done
     '
 
-# sort from start pos
-cat species.lst |
-    parallel -j 12 --keep-order '
+# sort by start pos
+cat ../info/genome.lst |
+    parallel -j 12 -k '
         echo "==> {}"
         cat UNIQ/{}.uniq.tsv |
             tsv-select -f 1 |
             tsv-uniq |
             tsv-sort > UNIQ/{}.tmp.lst
-        if [ -f UNIQ/{}.sort_uniq.tsv ]; then
-            rm UNIQ/{}.sort_uniq.tsv
+        if [ -f UNIQ/{}.sort_start.tsv ]; then
+            rm UNIQ/{}.sort_start.tsv
         fi
         for acc in $(cat UNIQ/{}.tmp.lst)
         do
             cat UNIQ/{}.uniq.tsv |
                 tsv-filter --str-eq 1:${acc} |
                 tsv-sort -nk 2,2 \
-                >> UNIQ/{}.sort_uniq.tsv
+                >> UNIQ/{}.sort_start.tsv
         done
         rm UNIQ/{}.tmp.lst
     '
 
-rm all_KD_uniq.tsv
-for species in $(cat species.lst)
+rm all_uniq_KD.tsv
+for species in $(cat ../info/genome.lst)
 do
-    cat UNIQ/${species}.sort_uniq.tsv |
+    cat UNIQ/${species}.sort_start.tsv |
         tsv-select -f 4 |
-        tsv-filter --iregex 1:pk \
-        >> all_KD_uniq.tsv
+        tsv-filter --or \
+            --str-eq 1:Pkinase \
+            --str-eq 1:Pkinase_fungal \
+            --str-eq 1:PK_Tyr_Ser-Thr \
+            --str-eq 1:Pkinase_C \
+        >> all_uniq_KD.tsv
 done
 
-cat all_KD_uniq.tsv |
+cat all_uniq_KD.tsv |
     tsv-summarize -g 1 --count |
     sort -r -nk 2,2 \
-    > tmp && mv tmp all_KD_uniq.tsv
+    > tmp && mv tmp all_uniq_KD.tsv
+# these are all pkinase unrepeated domains
 ```
 
 ### Pick pkinase domains only
