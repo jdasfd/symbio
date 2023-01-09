@@ -121,7 +121,7 @@ mkdir ~/data/symbio/PROTEINS
 cd ~/data/symbio
 
 cat info/genome.lst |
-    parallel -j 16 -k '
+    parallel -j 16 --keep-order '
         echo "==> {}"
         python2.7 scripts/getLongestProteinFromGFF.py \
             GENOMES/{}/genome.pep GENOMES/{}/genome.gff \
@@ -215,7 +215,7 @@ perl ~/Scripts/fig_table/xlsx2csv.pl -f info/taxo_genom.xlsx |
 
 # add species name before the id
 cat info/genome.lst |
-    parallel -j 16 -k '
+    parallel -j 12 -k '
         new_name=$(cat info/name.lst | grep "{}")
         faops size PROTEINS/{}.longest.pep |
             cut -f 1 |
@@ -276,7 +276,7 @@ cd ~/data/symbio
 bash scripts/busco.sh
 ```
 
-## Identifying gene orthogroups via orthogroups
+## Identifying gene orthogroups via OrthoFinder
 
 ### OrthoFinder processing
 
@@ -315,7 +315,7 @@ wc -l ortho.lst
 
 # split each orthogroup into a tsv
 cat ortho.lst |
-    parallel -j 12 --keep-order '
+    parallel -j 12 -k '
         echo "==> {}"
         bash ../scripts/ortho_extract.sh {} ./groups/
     '
@@ -337,13 +337,18 @@ cat ortho.lst |
     '
 
 wc -l all_pro_ortho.tsv
-#5304420 all_pro_ortho.tsv
+#5450693 all_pro_ortho.tsv
 
 dos2unix Orthogroups.GeneCount.tsv
 
 cat Orthogroups.GeneCount.tsv |
     tsv-select -H -f Orthogroup,Total \
     > ortho_gene.tsv
+
+cat ortho_gene.tsv | tsv-summarize -H --sum Total | sed 1d
+#5450693
+
+# rm -rf ./groups
 ```
 
 ### Count the length and the number of proteins
@@ -970,4 +975,62 @@ cat ortho.lst |
             awk -v OG={} '\''{print (OG"\t"$0)}'\'' \
             >> OG_cover/taxo_cover.tsv
     '
+```
+
+
+### Pick pkinase domains only
+
+```bash
+cd ~/data/symbio/DOMAIN
+mkdir -p RLK
+
+# all pkinase protein names
+cat species.lst |
+    parallel -j 12 -k '
+        cat UNIQ/{}.sort_uniq.tsv |
+            tsv-filter --or --str-eq 4:Pkinase \
+                --str-eq 4:Pkinase_fungal \
+                --str-eq 4:PK_Tyr_Ser-Thr |
+            cut -f 1 |
+            tsv-uniq \
+            > RLK/{}.RLK.lst
+    '
+
+# all RLK that truly contained the pkinase domain
+cat species.lst |
+    parallel -j 12 -k '
+        echo "==> {}"
+        cat UNIQ/{}.sort_uniq.tsv |
+            tsv-join -f RLK/{}.RLK.lst -k 1 \
+            > RLK/{}.RLK.tsv
+    '
+
+echo -e "species\tRLK_num" > all_RLK_species.tsv
+cat species.lst |
+    parallel -j 12 -k '
+        echo "==> {}"
+        cat RLK/{}.RLK.tsv |
+            tsv-select -f 1 |
+            tsv-uniq |
+            wc -l |
+            awk -v spe={} '\''{print (spe"\t"$0)}'\'' \
+            >> all_RLK_species.tsv
+    '
+
+cat all_PK_species.tsv |
+    tsv-join -H -f all_RLK_species.tsv -k species -a RLK_num \
+    > all_count_species.tsv
+
+perl ~/Scripts/fig_table/xlsx2csv.pl -f ../info/taxo_genom.xlsx |
+    mlr --icsv --otsv cat |
+    tsv-select -H -f SpeciesName,ComName |
+    sed 1d |
+    perl -nle 'print lc $_;' |
+    sed '1ispecies\ttaxo' \
+    > taxonomy.tsv
+
+cat taxonomy.tsv |
+    tsv-join -H -f all_count_species.tsv \
+        -k species -a pot_PK,true_PK,RLK_num \
+    > Species_result.tsv
 ```
