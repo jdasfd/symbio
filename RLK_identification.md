@@ -817,6 +817,42 @@ cat RLK/*.RLCK.tsv RLK/*.RLCK_with_TMD.tsv RLK/*.RLK.tsv |
 #194150
 ```
 
+## Count RLK related orthogroups
+
+### 
+
+```bash
+cd ~/data/symbio/
+mkdir result
+
+for group in RLK RLCK RLCK_with_TMD
+do
+    cat Orthogroups/all_pro_ortho.tsv |
+        tsv-join -f <(cat DOMAIN/RLK/*.${group}.tsv) -k 1 |
+        tsv-summarize -g 2 --count |
+        sed "1iOrthogroup\t${group}_num" \
+        > result/ortho_num.${group}.tsv
+done
+
+for group in RLK RLCK RLCK_with_TMD
+do
+    perl scripts/ortho_sup.pl result/ortho_num.${group}.tsv |
+        sed "1iOrthogroup\t${group}_num" \
+        > result/tmp && \
+        mv result/tmp result/ortho_num.${group}.tsv
+done
+
+cp Orthogroups/ortho_gene.tsv result/ortho_result.tsv
+
+for group in RLK RLCK RLCK_with_TMD
+do
+    cat result/ortho_result.tsv |
+        tsv-join -H -f result/ortho_num.${group}.tsv \
+            -k Orthogroup -a "${group}_num" \
+            > result/tmp && \
+        mv result/tmp result/ortho_result.tsv
+done
+```
 
 ### Count all ECDs
 
@@ -824,7 +860,7 @@ cat RLK/*.RLCK.tsv RLK/*.RLCK_with_TMD.tsv RLK/*.RLK.tsv |
 mkdir -p ~/data/symbio/RLK
 cd ~/data/symbio/RLK
 
-cat ../DOMAIN/RLK/*.RLK.lst > all_RLK.lst
+cat ../DOMAIN/RLK/*.tsv > all_RLK.lst
 cat all_RLK.lst | wc -l
 #63888
 
@@ -896,38 +932,7 @@ ls RLK/*.RLK.lst |
     '
 ```
 
-## RNA-seq of AM symbiosis
 
-```bash
-mkdir ~/data/symbio/sra
-cd ~/data/symbio/sra
-
-
-```
-
-```bash
-for file in $(ls)
-do
-    hmmscan --cpu 8 -E 1e-4 --domE 1e-4 -o ${file}.txt \
-    ../../symbio/HMM/PFAM/Pfam-A.hmm ${file}
-done
-```
-
-```bash
-perl ../scripts/tmhmm_result.pl -i TMD/actinidia_chinensis.tsv > actinidia_chinensis.RLK.lst
-
-cat pfam/actinidia_chinensis.pfam.tsv | sed 1d | tsv-join -f actinidia_chinensis.RLK.lst -k 1 > actinidia_chinensis.RLK.tsv
-
-
-```
-
-unrecognized option '--gdwarf-5'
-
-OG0001905
-OG0002289
-OG0005768
-OG0001821
-OG0010386
 
 ```bash
 cd ~/data/symbio/RLK
