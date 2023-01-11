@@ -36,9 +36,11 @@ EOF
 
 print "QUERY\tDomain\tE_value\tStart\tEnd\tQ_seq\tHit_seq\n";
 
-my $searchio = Bio::SearchIO -> new ( -format => 'hmmer',
-                                      -file => $input,
-                                      -best => "true", );
+my $searchio = Bio::SearchIO -> new (
+                                        -format     => 'hmmer',
+                                        -version    => 3,
+                                        -file       => $input,
+                                    );
 
 while ( my $result = $searchio -> next_result() ) {
     while ( my $hit = $result -> next_hit ) {

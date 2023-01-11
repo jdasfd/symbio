@@ -11,7 +11,7 @@ if [ ! -d ./BUSCO ]; then
     echo "==> mkdir BUSCO complete"
     echo
 else
-    echo "==> dir BUSCO is ready"
+    echo "==> dir BUSCO already exists"
     echo
 fi
 

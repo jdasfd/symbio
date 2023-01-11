@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-usage () { echo "bash ortho_extract.sh <species_accession> <out_dir>" 1>&2; exit; }
+usage () { echo "bash ortho_extract.sh <species_accession | ortho_num> <out_dir>" 1>&2; exit; }
 [ $# -lt 1 ] && usage
 
 S_ID=$1;
@@ -37,4 +37,4 @@ else
     rm ${OUT_PATH}/${S_ID}.tsv
 fi
 
-echo "==> Processing END"
+echo "==> Orthogroups extraction complete"
