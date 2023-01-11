@@ -632,6 +632,14 @@ cat ../info/genome.lst |
             > TMD/{}.TMD.tsv
         '
 
+# the number of proteins with TMD
+cat TMD/*.TMD.tsv |
+    cut -f 1 |
+    sort |
+    uniq |
+    wc -l
+#74958
+
 cat ../info/genome.lst |
     parallel -j 12 -k '
         echo "==> {}"
@@ -736,55 +744,35 @@ cat all_uniq_KD.tsv |
     sort -r -nk 2,2 \
     > tmp && mv tmp all_uniq_KD.tsv
 # these are all pkinase unrepeated domains
-```
 
+cat all_uniq_KD.tsv | tsv-summarize --sum 2
+#222892
+# that means a protein may contain more than 1 pkinase domain
+
+# count for every specie
+rm all_uniq_spe_KD.tsv
+cat ../info/genome.lst |
+    parallel -j 1 -k '
+        echo "==> {}"
+        cat UNIQ/{}.sort_start.tsv |
+            cut -f 1 |
+            uniq |
+            wc -l |
+            awk -v spe={} '\''{print (spe"\t"$0)}'\'' \
+            >> all_uniq_spe_KD.tsv
+    '
+```
 
 ### Extract all potential RLK
 
 After sorted by col3 (start pos), a script named `domain_order.pl` could just judge whether TMD showed before KD.
 
+- RLCK_with_TMD: usually RLCK does not contain ECD, but may contain TMD.
+- RLK: RLK must have ECD, which means its structure is N-ECD-TMD-PK-C.
+
 ```bash
 cd ~/data/symbio/DOMAIN
 mkdir -p RLK
-
-# sort with the domain start pos
-cat ../info/genome.lst |
-    parallel -j 12 -k '
-        echo "==> {}"
-        cat KD/{}.tsv |
-            tsv-select -f 1,2,3,4 \
-            > COMBINE/{}.tsv
-        cat TMD/{}.TMD.tsv \
-            >> COMBINE/{}.tsv
-        cat COMBINE/{}.tsv |
-            tsv-select -f 1 |
-            tsv-uniq |
-            tsv-sort > COMBINE/{}.tmp.lst
-        if [ -f COMBINE/{}.sort.tsv ]; then
-            rm COMBINE/{}.sort.tsv
-        fi
-        for acc in $(cat COMBINE/{}.tmp.lst)
-        do
-            cat COMBINE/{}.tsv |
-                tsv-filter --str-eq 1:${acc} |
-                tsv-sort -nk 3,3 \
-                >> COMBINE/{}.sort.tsv
-        done
-        rm COMBINE/{}.tmp.lst
-    '
-
-# count for every specie
-rm all_PK_pot_species.tsv
-cat species.lst |
-    parallel -j 12 -k '
-        echo "==> {}"
-        cat COMBINE/{}.sort.tsv |
-            cut -f 1 |
-            uniq |
-            wc -l |
-            awk -v spe={} '\''{print (spe"\t"$0)}'\'' \
-            >> all_PK_pot_species.tsv
-    '
 
 # filter according to RLK structure
 # that is TMD appeared before KD
@@ -793,27 +781,40 @@ cat ../info/genome.lst |
         echo "==> {}"
         cat UNIQ/{}.sort_start.tsv |
             perl ../scripts/domain_order.pl \
-            > RLK/{}.RLK.lst
+            > RLK/{}.tsv
         '
 
-rm all_PK_true_species.tsv
-cat species.lst |
+cat RLK/*.tsv | wc -l
+#73260
+
+cat ../info/genome.lst |
     parallel -j 12 -k '
         echo "==> {}"
-        cat COMBINE/{}.PK.lst |
-            wc -l |
-            awk -v spe={} '\''{print (spe"\t"$0)}'\'' \
-            >> all_PK_true_species.tsv
+        cat UNIQ/{}.sort_start.tsv |
+            tsv-join -f <(
+                cat RLK/{}.tsv |
+                tsv-filter --str-eq 2:RLK |
+                tsv-select -f 1
+            ) -k 1 \
+            > RLK/{}.RLK.tsv
+        cat UNIQ/{}.sort_start.tsv |
+            tsv-join -f <(
+                cat RLK/{}.tsv |
+                tsv-filter --str-eq 2:RLCK_with_TMD |
+                tsv-select -f 1
+            ) -k 1 \
+            > RLK/{}.RLCK_with_TMD.tsv
+        cat UNIQ/{}.sort_start.tsv |
+            tsv-join -f RLK/{}.tsv -k 1 -e \
+            > RLK/{}.RLCK.tsv
     '
 
-# combine two files
-cat all_PK_pot_species.tsv |
-    tsv-join -f all_PK_true_species.tsv -k 1 -a 2 |
-    tsv-sort -k 1,1 |
-    sed '1ispecies\tpot_PK\ttrue_PK' \
-    > all_PK_species.tsv
-
-rm all_PK_*_species.tsv
+cat RLK/*.RLCK.tsv RLK/*.RLCK_with_TMD.tsv RLK/*.RLK.tsv |
+    cut -f 1 |
+    sort |
+    uniq |
+    wc -l
+#194150
 ```
 
 
@@ -948,8 +949,7 @@ cat ortho.lst |
     '
 ```
 
-
-### Pick pkinase domains only
+### Potential script
 
 ```bash
 cd ~/data/symbio/DOMAIN
